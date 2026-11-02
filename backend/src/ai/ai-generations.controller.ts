@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Headers, Param, Post, Req } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Headers, Param, Post, Req } from '@nestjs/common';
 import { IsUuidLike } from '../common/uuid';
 import { AiGenerationService } from './ai-generation.service';
 import { clientIp } from '../common/time';
@@ -46,5 +46,10 @@ export class AiGenerationsController {
   @Get(':id')
   status(@Param('id') id: string, @Req() req: any) {
     return this.generations.getStatus(id, req.user.id as string);
+  }
+
+  @Delete(':id')
+  remove(@Param('id') id: string, @Req() req: any) {
+    return this.generations.removeResult(req.user.id as string, id);
   }
 }

@@ -12,21 +12,12 @@ interface Props {
   onNext: () => void;
 }
 
-const MONTHS: Record<string, string[]> = {
-  ru: ['янв', 'фев', 'мар', 'апр', 'май', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'],
-  ky: ['янв', 'фев', 'мар', 'апр', 'май', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'],
-  en: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
-};
-const WEEKDAYS: Record<string, string[]> = {
-  ru: ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'],
-  ky: ['Жк', 'Дш', 'Шш', 'Шр', 'Бш', 'Жм', 'Иш'],
-  en: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
-};
+const LOCALE = { ru: 'ru-RU', ky: 'ky-KG', en: 'en-GB' } as const;
 
-function formatTime(isoStr: string) {
+function formatTime(isoStr: string, locale: string) {
   // Сервер возвращает UTC, переводим в Asia/Bishkek (+6)
   const d = new Date(isoStr);
-  return d.toLocaleTimeString('ru-RU', {
+  return d.toLocaleTimeString(locale, {
     hour: '2-digit',
     minute: '2-digit',
     timeZone: 'Asia/Bishkek',
@@ -87,9 +78,9 @@ export function StepDateTime({ state, dispatch, onBack, onNext }: Props) {
         <div className="flex gap-2 w-max">
           {slots.map((d) => {
             const date = parseDateStr(d.date);
-            const wd = WEEKDAYS[lang]![date.getDay()];
+            const wd = date.toLocaleDateString(LOCALE[lang], { weekday: 'short' });
             const day = date.getDate();
-            const mon = MONTHS[lang]![date.getMonth()];
+            const mon = date.toLocaleDateString(LOCALE[lang], { month: 'short' });
             const isActive = d.date === activeDate;
             return (
               <button
@@ -136,7 +127,7 @@ export function StepDateTime({ state, dispatch, onBack, onNext }: Props) {
                       : 'border border-line text-text-secondary hover:border-gold-500/50 hover:text-text-primary'
                   }`}
                 >
-                  {formatTime(slot.start)}
+                  {formatTime(slot.start, LOCALE[lang])}
                 </button>
               );
             })}

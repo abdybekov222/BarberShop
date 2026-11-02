@@ -44,7 +44,7 @@ export function Footer() {
             </div>
           </div>
 
-          <nav className="md:col-span-3" aria-label="Разделы сайта">
+          <nav className="md:col-span-3" aria-label={t('footer.sections')}>
             <p className="mb-5 font-serif text-lg uppercase tracking-[0.06em] text-text-primary">{t('footer.sections')}</p>
             <ul className="space-y-3 text-sm">
               {NAV.map((l) => (
@@ -62,7 +62,7 @@ export function Footer() {
             <ul className="space-y-4 text-sm">
               <li className="flex gap-3">
                 <MapPin size={17} strokeWidth={1.5} className="mt-0.5 shrink-0 text-gold-500" />
-                <span>{BRAND.address}</span>
+                <span>{t('contact.address')}</span>
               </li>
               <li className="flex gap-3">
                 <Phone size={17} strokeWidth={1.5} className="mt-0.5 shrink-0 text-gold-500" />
@@ -73,9 +73,9 @@ export function Footer() {
               <li className="flex gap-3">
                 <Clock size={17} strokeWidth={1.5} className="mt-0.5 shrink-0 text-gold-500" />
                 <span>
-                  {BRAND.hours.map((h) => (
+                  {BRAND.hours.map((h, index) => (
                     <span key={h.day} className="block">
-                      {h.day}: <span className="text-text-primary">{h.time}</span>
+                      {t(index === 0 ? 'hours.weekdays' : 'hours.sunday')}: <span className="text-text-primary">{index === 0 ? h.time : t('hours.closed')}</span>
                     </span>
                   ))}
                 </span>

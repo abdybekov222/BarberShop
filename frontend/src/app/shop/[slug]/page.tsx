@@ -27,8 +27,9 @@ async function getProduct(slug: string): Promise<ProductDetail | null> {
 }
 
 export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
+  const { t } = getServerI18n();
   const p = await getProduct(params.slug);
-  if (!p) return { title: 'Товар не найден' };
+  if (!p) return { title: t('shop.notFound') };
   return { title: p.name, description: p.description.slice(0, 160), openGraph: { images: [p.image_url] } };
 }
 
@@ -39,7 +40,7 @@ export default async function ProductPage({ params }: { params: { slug: string }
 
   return (
     <div className="mx-auto max-w-screen px-4 pb-24 pt-8 sm:px-6 lg:px-10">
-      <nav className="flex flex-wrap items-center gap-1.5 text-sm" aria-label="Навигация">
+      <nav className="flex flex-wrap items-center gap-1.5 text-sm" aria-label={t('nav.main')}>
         <Link href="/shop" className="hover:text-text-primary">
           {t('shop.title')}
         </Link>

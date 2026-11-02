@@ -157,7 +157,20 @@ const ru = {
   'common.close': 'Закрыть',
   'common.save': 'Сохранить',
   'common.cancel': 'Отмена',
+  'common.confirm': 'Подтвердить',
   'common.delete': 'Удалить',
+  'order.status.new': 'Новый',
+  'order.status.paid': 'Оплачен',
+  'order.status.processing': 'Собирается',
+  'order.status.ready': 'Готов к выдаче',
+  'order.status.completed': 'Выдан',
+  'order.status.cancelled': 'Отменён',
+  'product.category.styling': 'Укладка',
+  'product.category.beard': 'Борода',
+  'product.category.shave': 'Бритьё',
+  'product.category.care': 'Уход',
+  'product.category.tools': 'Инструменты',
+  'product.category.gift': 'Наборы',
 };
 
 export type Dictionary = typeof ru & typeof ruExtra;
@@ -315,7 +328,20 @@ const kyBase: Omit<Dictionary, ExtraKey> = {
   'common.close': 'Жабуу',
   'common.save': 'Сактоо',
   'common.cancel': 'Жокко чыгаруу',
+  'common.confirm': 'Ырастоо',
   'common.delete': 'Өчүрүү',
+  'order.status.new': 'Жаңы',
+  'order.status.paid': 'Төлөндү',
+  'order.status.processing': 'Даярдалып жатат',
+  'order.status.ready': 'Алып кетүүгө даяр',
+  'order.status.completed': 'Берилди',
+  'order.status.cancelled': 'Жокко чыгарылды',
+  'product.category.styling': 'Чач жасалгалоо',
+  'product.category.beard': 'Сакал',
+  'product.category.shave': 'Кырынуу',
+  'product.category.care': 'Кам көрүү',
+  'product.category.tools': 'Аспаптар',
+  'product.category.gift': 'Топтомдор',
 };
 
 const enBase: Omit<Dictionary, ExtraKey> = {
@@ -470,7 +496,20 @@ const enBase: Omit<Dictionary, ExtraKey> = {
   'common.close': 'Close',
   'common.save': 'Save',
   'common.cancel': 'Cancel',
+  'common.confirm': 'Confirm',
   'common.delete': 'Delete',
+  'order.status.new': 'New',
+  'order.status.paid': 'Paid',
+  'order.status.processing': 'Processing',
+  'order.status.ready': 'Ready for pickup',
+  'order.status.completed': 'Completed',
+  'order.status.cancelled': 'Cancelled',
+  'product.category.styling': 'Styling',
+  'product.category.beard': 'Beard',
+  'product.category.shave': 'Shaving',
+  'product.category.care': 'Care',
+  'product.category.tools': 'Tools',
+  'product.category.gift': 'Gift sets',
 };
 
 export const LANGS = ['ru', 'ky', 'en'] as const;

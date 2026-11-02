@@ -1,8 +1,8 @@
-export function StarRating({ value }: { value: number }) {
+export function StarRating({ value, label }: { value: number; label: string }) {
   return (
     <span
       className="inline-flex items-center gap-0.5 text-gold-500"
-      aria-label={`Рейтинг ${value} из 5`}
+      aria-label={`${label} ${value} / 5`}
     >
       {[1, 2, 3, 4, 5].map((i) => (
         <svg

@@ -9,14 +9,17 @@ import { CATEGORIES, type Product, type ProductCategory, type ProductPage } from
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { Select } from '../../components/ui/Select';
+import { useDialog, translateTemplate } from '../../components/ui/DialogProvider';
+import { useI18n } from '../../i18n/I18nProvider';
+import type { TKey } from '../../i18n/dictionaries';
 
-const CAT_LABEL: Record<ProductCategory, string> = {
-  styling: 'Укладка',
-  beard: 'Борода',
-  shave: 'Бритьё',
-  care: 'Уход',
-  tools: 'Инструменты',
-  gift: 'Наборы',
+const CAT_LABEL: Record<ProductCategory, TKey> = {
+  styling: 'product.category.styling',
+  beard: 'product.category.beard',
+  shave: 'product.category.shave',
+  care: 'product.category.care',
+  tools: 'product.category.tools',
+  gift: 'product.category.gift',
 };
 
 type Draft = {
@@ -52,6 +55,8 @@ const EMPTY: Draft = {
 
 /** Admin CRUD товаров: список с поиском, создание, редактирование, удаление, загрузка фото. */
 export function AdminProducts({ token }: { token: () => Promise<string | null> }) {
+  const { t } = useI18n();
+  const dialog = useDialog();
   const [items, setItems] = useState<Product[] | null>(null);
   const [q, setQ] = useState('');
   const [draft, setDraft] = useState<Draft | null>(null);
@@ -123,7 +128,7 @@ export function AdminProducts({ token }: { token: () => Promise<string | null> }
       if (draft.id) await apiSend('PATCH', `/api/admin/products/${draft.id}`, await token(), body);
       else await apiSend('POST', '/api/admin/products', await token(), body);
       setDraft(null);
-      setMsg('Сохранено');
+      setMsg(t('admin.saved'));
       await load();
     } catch (err) {
       setMsg((err as Error).message);
@@ -133,12 +138,18 @@ export function AdminProducts({ token }: { token: () => Promise<string | null> }
   };
 
   const remove = async (p: Product) => {
-    if (!window.confirm(`Удалить «${p.name}»?`)) return;
+    const accepted = await dialog.confirm({
+      title: t('dlg.productDeleteTitle'),
+      message: translateTemplate(t, 'dlg.productDeleteMessage', { name: p.name }),
+      danger: true,
+      confirmLabel: t('common.delete'),
+    });
+    if (!accepted) return;
     const r = await apiSend<{ archived: boolean }>('DELETE', `/api/admin/products/${p.id}`, await token()).catch((e: Error) => {
       setMsg(e.message);
       return null;
     });
-    if (r) setMsg(r.archived ? 'Товар есть в заказах — он скрыт с сайта' : 'Товар удалён');
+    if (r) setMsg(r.archived ? t('admin.productArchived') : t('admin.productDeleted'));
     await load();
   };
 
@@ -152,10 +163,10 @@ export function AdminProducts({ token }: { token: () => Promise<string | null> }
       <div className="mb-4 flex flex-col gap-3 sm:flex-row">
         <label className="relative flex-1">
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary" />
-          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Поиск по названию" className="pl-9" />
+          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t('admin.productSearch')} className="pl-9" />
         </label>
         <Button onClick={() => setDraft({ ...EMPTY })}>
-          <Plus size={16} /> Добавить товар
+          <Plus size={16} /> {t('admin.addProduct')}
         </Button>
       </div>
       {msg && <p className="mb-3 text-sm">{msg}</p>}
@@ -167,10 +178,10 @@ export function AdminProducts({ token }: { token: () => Promise<string | null> }
           <table className="w-full min-w-[640px] text-sm">
             <thead className="bg-bg-elevated text-left text-xs uppercase tracking-wide">
               <tr>
-                <th className="p-3">Товар</th>
-                <th className="p-3">Категория</th>
-                <th className="p-3 text-right">Цена</th>
-                <th className="p-3 text-right">Остаток</th>
+                <th className="p-3">{t('admin.product')}</th>
+                <th className="p-3">{t('admin.category')}</th>
+                <th className="p-3 text-right">{t('admin.price')}</th>
+                <th className="p-3 text-right">{t('admin.stock')}</th>
                 <th className="p-3" />
               </tr>
             </thead>
@@ -184,19 +195,19 @@ export function AdminProducts({ token }: { token: () => Promise<string | null> }
                       </span>
                       <span className="text-text-primary">
                         {p.name}
-                        {!p.is_active && <span className="ml-2 text-xs">(скрыт)</span>}
+                        {!p.is_active && <span className="ml-2 text-xs">({t('admin.hidden')})</span>}
                       </span>
                     </div>
                   </td>
-                  <td className="p-3">{CAT_LABEL[p.category]}</td>
+                  <td className="p-3">{t(CAT_LABEL[p.category])}</td>
                   <td className="p-3 text-right text-text-primary">{formatKgs(p.price)}</td>
                   <td className={`p-3 text-right ${p.stock <= 3 ? 'text-error' : ''}`}>{p.stock}</td>
                   <td className="p-3">
                     <div className="flex justify-end gap-1">
-                      <button onClick={() => edit(p)} aria-label={`Изменить ${p.name}`} className="inline-flex h-9 w-9 items-center justify-center hover:text-gold-500">
+                      <button onClick={() => edit(p)} aria-label={`${t('admin.edit')} ${p.name}`} className="inline-flex h-9 w-9 items-center justify-center hover:text-gold-500">
                         <Pencil size={15} />
                       </button>
-                      <button onClick={() => remove(p)} aria-label={`Удалить ${p.name}`} className="inline-flex h-9 w-9 items-center justify-center hover:text-error">
+                      <button onClick={() => remove(p)} aria-label={`${t('common.delete')} ${p.name}`} className="inline-flex h-9 w-9 items-center justify-center hover:text-error">
                         <Trash2 size={15} />
                       </button>
                     </div>
@@ -209,11 +220,11 @@ export function AdminProducts({ token }: { token: () => Promise<string | null> }
       )}
 
       {draft && (
-        <div className="fixed inset-0 z-[60] flex items-start justify-center overflow-y-auto bg-black/70 p-4" role="dialog" aria-modal="true" aria-label="Товар">
+        <div className="fixed inset-0 z-[60] flex items-start justify-center overflow-y-auto bg-black/70 p-4" role="dialog" aria-modal="true" aria-label={t('admin.product')}>
           <form onSubmit={save} className="my-8 w-full max-w-2xl rounded-sm border border-line bg-bg-primary p-6">
             <div className="mb-5 flex items-center justify-between">
-              <h3 className="font-serif text-2xl uppercase">{draft.id ? 'Изменить товар' : 'Новый товар'}</h3>
-              <button type="button" onClick={() => setDraft(null)} aria-label="Закрыть">
+              <h3 className="font-serif text-2xl uppercase">{draft.id ? t('admin.editProduct') : t('admin.newProduct')}</h3>
+              <button type="button" onClick={() => setDraft(null)} aria-label={t('common.close')}>
                 <X size={20} />
               </button>
             </div>
@@ -233,43 +244,43 @@ export function AdminProducts({ token }: { token: () => Promise<string | null> }
                   className="sr-only"
                   onChange={(e) => e.target.files?.[0] && upload(e.target.files[0])}
                 />
-                <p className="mt-2 text-xs">Нажмите, чтобы загрузить фото</p>
+                <p className="mt-2 text-xs">{t('admin.uploadPhoto')}</p>
               </div>
               <div className="grid gap-3">
-                <Input placeholder="Название" required {...field('name')} />
+                <Input placeholder={t('admin.name')} required {...field('name')} />
                 <div className="grid grid-cols-2 gap-3">
-                  <Input placeholder="Бренд" {...field('brand')} />
+                  <Input placeholder={t('shop.brand')} {...field('brand')} />
                   <Select
-                    label="Категория"
+                    label={t('admin.category')}
                     value={draft.category}
                     onChange={(c) => setDraft({ ...draft, category: c })}
-                    options={CATEGORIES.map((c) => ({ value: c, label: CAT_LABEL[c] }))}
+                    options={CATEGORIES.map((c) => ({ value: c, label: t(CAT_LABEL[c]) }))}
                   />
                 </div>
                 <div className="grid grid-cols-3 gap-3">
-                  <Input placeholder="Цена" inputMode="numeric" required {...field('price')} />
-                  <Input placeholder="Старая цена" inputMode="numeric" {...field('old_price')} />
-                  <Input placeholder="Остаток" inputMode="numeric" {...field('stock')} />
+                  <Input placeholder={t('admin.price')} inputMode="numeric" required {...field('price')} />
+                  <Input placeholder={t('admin.oldPrice')} inputMode="numeric" {...field('old_price')} />
+                  <Input placeholder={t('admin.stock')} inputMode="numeric" {...field('stock')} />
                 </div>
-                <Input placeholder="Объём (например, 100 мл)" {...field('volume')} />
+                <Input placeholder={t('admin.volumeExample')} {...field('volume')} />
               </div>
             </div>
-            <Input as="textarea" placeholder="Описание" className="mt-3 h-24 resize-none py-3" {...field('description')} />
-            <Input as="textarea" placeholder="Как пользоваться" className="mt-3 h-20 resize-none py-3" {...field('usage')} />
+            <Input as="textarea" placeholder={t('admin.description')} className="mt-3 h-24 resize-none py-3" {...field('description')} />
+            <Input as="textarea" placeholder={t('shop.usage')} className="mt-3 h-20 resize-none py-3" {...field('usage')} />
             <div className="mt-3 flex gap-6 text-sm">
               <label className="flex items-center gap-2">
-                <input type="checkbox" checked={draft.is_active} onChange={(e) => setDraft({ ...draft, is_active: e.target.checked })} /> Показывать на сайте
+                <input type="checkbox" checked={draft.is_active} onChange={(e) => setDraft({ ...draft, is_active: e.target.checked })} /> {t('admin.showOnSite')}
               </label>
               <label className="flex items-center gap-2">
-                <input type="checkbox" checked={draft.is_featured} onChange={(e) => setDraft({ ...draft, is_featured: e.target.checked })} /> Хит
+                <input type="checkbox" checked={draft.is_featured} onChange={(e) => setDraft({ ...draft, is_featured: e.target.checked })} /> {t('bk.hit')}
               </label>
             </div>
             <div className="mt-6 flex justify-end gap-3">
               <Button type="button" variant="outline" onClick={() => setDraft(null)}>
-                Отмена
+                {t('common.cancel')}
               </Button>
               <Button type="submit" disabled={busy || !draft.image_url}>
-                Сохранить
+                {t('common.save')}
               </Button>
             </div>
           </form>

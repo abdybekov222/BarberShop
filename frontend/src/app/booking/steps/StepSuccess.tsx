@@ -23,7 +23,7 @@ function formatDateTime(isoStr: string | null, locale: string) {
   });
 }
 
-function googleCalendarUrl(state: WizardState): string | null {
+function googleCalendarUrl(state: WizardState, eventTitle: string): string | null {
   if (!state.bookedStart) return null;
   const duration = state.services
     .filter((s) => state.selectedServiceIds.includes(s.id))
@@ -33,9 +33,9 @@ function googleCalendarUrl(state: WizardState): string | null {
   const fmt = (d: Date) => d.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
   const params = new URLSearchParams({
     action: 'TEMPLATE',
-    text: 'BARS Barber Club — визит',
+    text: eventTitle,
     dates: `${fmt(start)}/${fmt(end)}`,
-    location: 'BARS Barber Club, г. Бишкек, ул. Московская, 123',
+    location: 'BARS Barber Club, Bishkek, Moskovskaya St 123',
   });
   return `https://calendar.google.com/calendar/render?${params.toString()}`;
 }
@@ -44,7 +44,7 @@ export function StepSuccess({ state }: Props) {
   const { user } = useAuth();
   const { t, lang } = useI18n();
   const locale = lang === 'en' ? 'en-GB' : lang === 'ky' ? 'ky-KG' : 'ru-RU';
-  const gcal = googleCalendarUrl(state);
+  const gcal = googleCalendarUrl(state, t('bk.calendarEvent'));
 
   const downloadIcs = async () => {
     if (!user || !state.bookingId) return;

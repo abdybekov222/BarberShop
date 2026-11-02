@@ -11,6 +11,9 @@ import { Select } from '../../components/ui/Select';
 import { AdminCharts } from './AdminCharts';
 import { AdminOrders } from './AdminOrders';
 import { AdminProducts } from './AdminProducts';
+import { useDialog } from '../../components/ui/DialogProvider';
+import { useI18n } from '../../i18n/I18nProvider';
+import type { TKey } from '../../i18n/dictionaries';
 
 interface Stats {
   totalBookings: number;
@@ -65,13 +68,13 @@ interface AbuseRow {
   created_at: string;
 }
 
-const STATUS_MAP: Record<string, { label: string; cls: string }> = {
-  pending: { label: 'Ожидает', cls: 'text-yellow-400' },
-  confirmed: { label: 'Подтверждена', cls: 'text-success' },
-  completed: { label: 'Завершена', cls: 'text-text-secondary' },
-  cancelled_by_client: { label: 'Отменена', cls: 'text-error' },
-  cancelled_by_salon: { label: 'Отмена салона', cls: 'text-error' },
-  no_show: { label: 'Не пришёл', cls: 'text-error' },
+const STATUS_MAP: Record<string, { label: TKey; cls: string }> = {
+  pending: { label: 'acc.st.pending', cls: 'text-yellow-400' },
+  confirmed: { label: 'acc.st.confirmed', cls: 'text-success' },
+  completed: { label: 'acc.st.completed', cls: 'text-text-secondary' },
+  cancelled_by_client: { label: 'acc.st.cancelled_by_client', cls: 'text-error' },
+  cancelled_by_salon: { label: 'acc.st.cancelled_by_salon', cls: 'text-error' },
+  no_show: { label: 'acc.st.no_show', cls: 'text-error' },
 };
 
 const NEXT_STATUSES: Record<string, string[]> = {
@@ -79,24 +82,24 @@ const NEXT_STATUSES: Record<string, string[]> = {
   confirmed: ['completed', 'no_show', 'cancelled_by_salon'],
 };
 
-const KILL_REASONS: Record<string, string> = {
-  manual: 'вручную',
-  budget: 'бюджет исчерпан',
-  daily_cap: 'суточный потолок',
-  provider_errors: 'ошибки провайдера',
+const KILL_REASONS: Record<string, TKey> = {
+  manual: 'admin.kill.manual',
+  budget: 'admin.kill.budget',
+  daily_cap: 'admin.kill.dailyCap',
+  provider_errors: 'admin.kill.providerErrors',
 };
 
-const SETTINGS_LABELS: Record<string, string> = {
-  slot_step_min: 'Шаг слотов, мин (15/30)',
-  cancel_window_hours: 'Окно отмены, ч',
-  booking_horizon_days: 'Горизонт записи, дней',
-  ai_free_limit: 'Бесплатных ИИ-попыток (новым)',
-  ai_ip_generations_per_day: 'ИИ-генераций с IP в сутки',
-  ai_uploads_per_day: 'Загрузок фото в сутки',
+const SETTINGS_LABELS: Record<string, TKey> = {
+  slot_step_min: 'admin.setting.slotStep',
+  cancel_window_hours: 'admin.setting.cancelWindow',
+  booking_horizon_days: 'admin.setting.horizon',
+  ai_free_limit: 'admin.setting.freeAi',
+  ai_ip_generations_per_day: 'admin.setting.ipLimit',
+  ai_uploads_per_day: 'admin.setting.uploadLimit',
 };
 
-function formatDT(iso: string) {
-  return new Date(iso).toLocaleString('ru-RU', {
+function formatDT(iso: string, locale: string) {
+  return new Date(iso).toLocaleString(locale, {
     weekday: 'short',
     day: 'numeric',
     month: 'short',
@@ -140,6 +143,7 @@ function MasterRow({
   onToggle: () => void;
   onTimeOff: (startsAt: string, endsAt: string, reason: string) => void;
 }) {
+  const { t } = useI18n();
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
   const [reason, setReason] = useState('Отпуск');
@@ -151,12 +155,12 @@ function MasterRow({
             {master.name}
           </p>
           <p className="text-xs text-text-secondary">
-            Рейтинг {master.rating ?? '—'} · записей {master._count.bookings}
-            {master.is_active ? '' : ' · скрыт с сайта'}
+            {t('admin.rating')} {master.rating ?? '—'} · {t('admin.bookingCount')} {master._count.bookings}
+            {master.is_active ? '' : ` · ${t('admin.hiddenFromSite')}`}
           </p>
         </div>
         <Button variant="text" className="!h-9 !min-h-0 text-xs" disabled={busy} onClick={onToggle}>
-          {master.is_active ? 'Скрыть с сайта' : 'Вернуть на сайт'}
+          {master.is_active ? t('admin.hideFromSite') : t('admin.showOnSite')}
         </Button>
       </div>
       <form
@@ -167,22 +171,26 @@ function MasterRow({
         }}
       >
         <label className="text-xs text-text-secondary">
-          С
+          {t('admin.fromDate')}
           <input type="date" required value={from} onChange={(e) => setFrom(e.target.value)} className="ml-1 h-9 rounded border border-line bg-bg-primary px-2 text-xs text-text-primary [color-scheme:dark]" />
         </label>
         <label className="text-xs text-text-secondary">
-          по
+          {t('admin.toDate')}
           <input type="date" required min={from} value={to} onChange={(e) => setTo(e.target.value)} className="ml-1 h-9 rounded border border-line bg-bg-primary px-2 text-xs text-text-primary [color-scheme:dark]" />
         </label>
         <Select
           size="sm"
-          label="Причина"
+          label={t('admin.reason')}
           value={reason}
           onChange={setReason}
-          options={['Отпуск', 'Больничный', 'Выходной'].map((r) => ({ value: r, label: r }))}
+          options={[
+            { value: 'Отпуск', label: t('admin.reasonHoliday') },
+            { value: 'Больничный', label: t('admin.reasonSick') },
+            { value: 'Выходной', label: t('admin.reasonDayOff') },
+          ]}
         />
         <Button type="submit" variant="outline" className="!h-9 !min-h-0 text-xs" disabled={busy || !from || !to}>
-          Добавить отсутствие
+          {t('admin.addTimeOff')}
         </Button>
       </form>
     </div>
@@ -191,10 +199,13 @@ function MasterRow({
 
 type Tab = 'stats' | 'bookings' | 'orders' | 'products' | 'team' | 'services' | 'reviews' | 'ai' | 'settings';
 
-const TAB_LABELS: Record<Tab, string> = { stats: 'Статистика', bookings: 'Записи', orders: 'Заказы', products: 'Товары', team: 'Мастера', services: 'Услуги и цены', reviews: 'Отзывы', ai: 'ИИ-зеркало', settings: 'Настройки' };
+const TAB_LABELS: Record<Tab, TKey> = { stats: 'admin.tab.stats', bookings: 'admin.tab.bookings', orders: 'admin.tab.orders', products: 'admin.tab.products', team: 'admin.tab.team', services: 'admin.tab.services', reviews: 'admin.tab.reviews', ai: 'admin.tab.ai', settings: 'admin.tab.settings' };
 
 export function AdminDashboard() {
   const { user, loading } = useAuth();
+  const { t, lang } = useI18n();
+  const locale = lang === 'en' ? 'en-GB' : lang === 'ky' ? 'ky-KG' : 'ru-RU';
+  const dialog = useDialog();
   const router = useRouter();
   const [forbidden, setForbidden] = useState(false);
   const [stats, setStats] = useState<Stats | null>(null);
@@ -272,7 +283,11 @@ export function AdminDashboard() {
     run(async () => {
       let reason: string | undefined;
       if (status === 'cancelled_by_salon') {
-        const r = window.prompt('Причина отмены (увидит клиент):', 'Мастер недоступен');
+        const r = await dialog.prompt({
+          title: t('dlg.bookingCancelTitle'),
+          message: t('dlg.bookingCancelPrompt'),
+          defaultValue: t('dlg.bookingCancelDefault'),
+        });
         if (r === null) return;
         reason = r;
       }
@@ -284,26 +299,26 @@ export function AdminDashboard() {
   if (forbidden) {
     return (
       <div className="mx-auto max-w-md px-4 py-24 text-center">
-        <h1 className="text-2xl font-serif text-text-primary mb-2">Нет доступа</h1>
-        <p className="text-text-secondary">Раздел доступен только администраторам салона.</p>
+        <h1 className="text-2xl font-serif text-text-primary mb-2">{t('admin.noAccess')}</h1>
+        <p className="text-text-secondary">{t('admin.adminOnly')}</p>
       </div>
     );
   }
 
   return (
     <div className="mx-auto max-w-screen px-4 py-10">
-      <p className="eyebrow mb-5">Управление салоном</p>
-      <h1 className="text-4xl sm:text-5xl font-serif text-text-primary mb-8">Админ-панель</h1>
+      <p className="eyebrow mb-5">{t('admin.management')}</p>
+      <h1 className="text-4xl sm:text-5xl font-serif text-text-primary mb-8">{t('acc.admin')}</h1>
 
       {stats && (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
           {[
-            { label: 'Ожидают', value: stats.pendingBookings, gold: true },
-            { label: 'Сегодня', value: stats.todayBookings },
-            { label: 'Записей всего', value: stats.totalBookings },
-            { label: 'Клиентов', value: stats.totalUsers },
-            { label: 'Выручка за 7 дн.', value: formatKgs(stats.revenueWeek) },
-            { label: 'ИИ-пользователей за 7 дн.', value: stats.aiUsersWeek },
+            { label: t('admin.pending'), value: stats.pendingBookings, gold: true },
+            { label: t('admin.today'), value: stats.todayBookings },
+            { label: t('admin.totalBookings'), value: stats.totalBookings },
+            { label: t('admin.clients'), value: stats.totalUsers },
+            { label: t('admin.revenue7d'), value: formatKgs(stats.revenueWeek) },
+            { label: t('admin.aiUsers7d'), value: stats.aiUsersWeek },
           ].map((s) => (
             <div key={s.label} className="rounded-sm border border-line bg-bg-elevated p-4">
               <p className="text-xs text-text-secondary/70 uppercase tracking-wide mb-1">{s.label}</p>
@@ -317,23 +332,23 @@ export function AdminDashboard() {
 
       <Select
         className="mb-6 md:hidden"
-        label="Раздел"
+        label={t('admin.section')}
         value={tab}
         onChange={setTab}
-        options={(Object.keys(TAB_LABELS) as Tab[]).map((t) => ({ value: t, label: TAB_LABELS[t] }))}
+        options={(Object.keys(TAB_LABELS) as Tab[]).map((tabKey) => ({ value: tabKey, label: t(TAB_LABELS[tabKey]) }))}
       />
       <div className="mb-6 hidden flex-wrap gap-2 md:flex" role="tablist">
-        {(['stats', 'bookings', 'orders', 'products', 'team', 'services', 'reviews', 'ai', 'settings'] as const).map((t) => (
+        {(['stats', 'bookings', 'orders', 'products', 'team', 'services', 'reviews', 'ai', 'settings'] as const).map((tabKey) => (
           <button
-            key={t}
+            key={tabKey}
             role="tab"
-            aria-selected={tab === t}
-            onClick={() => setTab(t)}
+            aria-selected={tab === tabKey}
+            onClick={() => setTab(tabKey)}
             className={`h-9 whitespace-nowrap rounded-full px-4 text-sm transition-colors ${
-              tab === t ? 'bg-gold-500 text-black font-semibold' : 'bg-subtle text-text-secondary hover:text-text-primary'
+              tab === tabKey ? 'bg-gold-500 text-black font-semibold' : 'bg-subtle text-text-secondary hover:text-text-primary'
             }`}
           >
-            {TAB_LABELS[t]}
+            {t(TAB_LABELS[tabKey])}
           </button>
         ))}
       </div>
@@ -348,33 +363,32 @@ export function AdminDashboard() {
       {tab === 'orders' && <AdminOrders token={token} />}
       {tab === 'products' && <AdminProducts token={token} />}
 
-      {/* ═══ Записи ═══ */}
       {tab === 'bookings' && (
         <div>
           <div className="flex flex-wrap items-center gap-2 mb-4">
             <Select
               size="sm"
-              label="Статус"
+              label={t('ui.status')}
               value={statusFilter}
               onChange={setStatusFilter}
-              options={[{ value: '', label: 'Все статусы' }, ...Object.entries(STATUS_MAP).map(([s, meta]) => ({ value: s, label: meta.label }))]}
+              options={[{ value: '', label: t('admin.allStatuses') }, ...Object.entries(STATUS_MAP).map(([s, meta]) => ({ value: s, label: t(meta.label) }))]}
             />
             <input
               type="date"
               value={dateFilter}
               onChange={(e) => setDateFilter(e.target.value)}
-              aria-label="Фильтр по дате"
+              aria-label={t('admin.dateFilter')}
               className="h-8 rounded-sm border border-line bg-bg-elevated px-2 text-xs text-text-primary [color-scheme:dark]"
             />
             {dateFilter && (
               <button onClick={() => setDateFilter('')} className="text-xs text-text-secondary underline">
-                сбросить дату
+                {t('admin.clearDate')}
               </button>
             )}
           </div>
 
           {bookings.length === 0 ? (
-            <p className="text-text-secondary py-10 text-center">Записей нет</p>
+            <p className="text-text-secondary py-10 text-center">{t('admin.noBookings')}</p>
           ) : (
             <div className="space-y-3">
               {bookings.map((b) => {
@@ -392,7 +406,7 @@ export function AdminDashboard() {
                           )}
                         </p>
                         <p className="text-xs text-text-secondary mt-0.5">
-                          <span className="inline-block first-letter:uppercase">{formatDT(b.starts_at)}</span> · {b.master.name} ·{' '}
+                          <span className="inline-block first-letter:uppercase">{formatDT(b.starts_at, locale)}</span> · {b.master.name} ·{' '}
                           {b.items.map((i) => i.service.name).join(', ')}
                         </p>
                         {b.client_comment && (
@@ -400,17 +414,17 @@ export function AdminDashboard() {
                         )}
                         {b.ai_generation && (
                           <p className="text-xs mt-1">
-                            Образ ИИ: «{b.ai_generation.style}»{' '}
+                            {t('admin.aiLook')}: «{b.ai_generation.style}»{' '}
                             {b.ai_generation.result_url ? (
                               <a href={b.ai_generation.result_url} target="_blank" rel="noopener noreferrer" className="text-gold-500 underline">
-                                открыть
+                                {t('admin.open')}
                               </a>
                             ) : (
-                              <span className="text-text-secondary/60">(срок хранения истёк)</span>
+                              <span className="text-text-secondary/60">({t('admin.retentionExpired')})</span>
                             )}
                           </p>
                         )}
-                        <p className={`text-xs mt-1 font-medium ${st?.cls}`}>{st?.label}</p>
+                        <p className={`text-xs mt-1 font-medium ${st?.cls}`}>{st ? t(st.label) : b.status}</p>
                       </div>
                       <div className="flex flex-wrap items-center gap-2 shrink-0">
                         <span className="text-sm text-gold-500 font-semibold">{formatKgs(b.total_price)}</span>
@@ -427,7 +441,7 @@ export function AdminDashboard() {
                                   : 'border-error/50 text-error hover:bg-error/10'
                             }`}
                           >
-                            {ns === 'confirmed' ? 'Подтвердить' : (STATUS_MAP[ns]?.label ?? ns)}
+                            {ns === 'confirmed' ? t('admin.confirm') : STATUS_MAP[ns] ? t(STATUS_MAP[ns]!.label) : ns}
                           </button>
                         ))}
                       </div>
@@ -449,7 +463,7 @@ export function AdminDashboard() {
               service={s}
               busy={busy}
               onSave={(patch) =>
-                run(async () => apiSend('PATCH', `/api/admin/services/${s.id}`, await token(), patch), 'Услуга сохранена')
+                run(async () => apiSend('PATCH', `/api/admin/services/${s.id}`, await token(), patch), t('admin.serviceSaved'))
               }
             />
           ))}
@@ -462,13 +476,13 @@ export function AdminDashboard() {
           <div className="rounded-sm border border-line bg-bg-elevated p-6">
             <div className="flex items-center justify-between gap-4 mb-4">
               <div>
-                <h2 className="text-lg font-medium text-text-primary">ИИ-зеркало</h2>
+                <h2 className="text-lg font-medium text-text-primary">{t('acc.mirror')}</h2>
                 <p className={`text-sm mt-1 ${aiStatus.kill_switch ? 'text-error' : 'text-success'}`}>
                   {aiStatus.kill_switch
-                    ? `Выключено (${KILL_REASONS[aiStatus.kill_reason ?? 'manual'] ?? aiStatus.kill_reason})`
-                    : 'Включено'}
+                    ? `${t('admin.disabled')} (${t(KILL_REASONS[aiStatus.kill_reason ?? 'manual'] ?? 'admin.kill.manual')})`
+                    : t('admin.enabled')}
                 </p>
-                <p className="text-xs text-text-secondary mt-1">Провайдер: {aiStatus.provider}</p>
+                <p className="text-xs text-text-secondary mt-1">{t('admin.provider')}: {aiStatus.provider}</p>
               </div>
               <Button
                 variant={aiStatus.kill_switch ? 'gold' : 'outline'}
@@ -479,13 +493,13 @@ export function AdminDashboard() {
                   )
                 }
               >
-                {aiStatus.kill_switch ? 'Включить' : 'Выключить'}
+                {aiStatus.kill_switch ? t('admin.enable') : t('admin.disable')}
               </Button>
             </div>
 
             <div className="mb-4">
               <div className="flex justify-between text-xs text-text-secondary mb-1">
-                <span>Расход</span>
+                <span>{t('admin.spent')}</span>
                 <span>
                   ${aiStatus.spent_usd.toFixed(4)} / ${aiStatus.budget_usd.toFixed(2)}
                 </span>
@@ -497,19 +511,19 @@ export function AdminDashboard() {
                 />
               </div>
               <p className="text-xs text-text-secondary mt-1">
-                Остаток: ${aiStatus.remaining_usd.toFixed(4)} · Резерв: ${aiStatus.reserved_usd.toFixed(4)}
+                {t('admin.remaining')}: ${aiStatus.remaining_usd.toFixed(4)} · {t('admin.reserved')}: ${aiStatus.reserved_usd.toFixed(4)}
               </p>
             </div>
 
             <div className="grid grid-cols-2 gap-3 text-sm">
               <div className="rounded bg-subtle px-3 py-2">
-                <p className="text-xs text-text-secondary/60">За последний час</p>
+                <p className="text-xs text-text-secondary/60">{t('admin.lastHour')}</p>
                 <p className="text-text-primary font-medium">
                   {aiStatus.generations_last_hour} / {aiStatus.hourly_cap}
                 </p>
               </div>
               <div className="rounded bg-subtle px-3 py-2">
-                <p className="text-xs text-text-secondary/60">Сегодня</p>
+                <p className="text-xs text-text-secondary/60">{t('admin.today')}</p>
                 <p className="text-text-primary font-medium">
                   {aiStatus.generations_today} / {aiStatus.daily_cap}
                 </p>
@@ -520,25 +534,25 @@ export function AdminDashboard() {
           <LimitsForm
             status={aiStatus}
             busy={busy}
-            onSave={(v) => run(async () => apiSend('PATCH', '/api/admin/ai/limits', await token(), v), 'Лимиты сохранены')}
+            onSave={(v) => run(async () => apiSend('PATCH', '/api/admin/ai/limits', await token(), v), t('admin.limitsSaved'))}
           />
 
           <GrantForm
             busy={busy}
             onGrant={(email, amount) =>
-              run(async () => apiSend('POST', '/api/admin/ai/grant', await token(), { email, amount }), 'Попытки начислены')
+              run(async () => apiSend('POST', '/api/admin/ai/grant', await token(), { email, amount }), t('admin.triesGranted'))
             }
           />
 
           <div className="rounded-sm border border-line bg-bg-elevated p-6">
-            <h3 className="text-sm uppercase tracking-wide text-text-secondary/70 mb-3">Журнал блокировок</h3>
+            <h3 className="text-sm uppercase tracking-wide text-text-secondary/70 mb-3">{t('admin.blockLog')}</h3>
             {abuse.length === 0 ? (
-              <p className="text-sm text-text-secondary">Срабатываний нет</p>
+              <p className="text-sm text-text-secondary">{t('admin.noTriggers')}</p>
             ) : (
               <ul className="space-y-1 text-xs text-text-secondary max-h-64 overflow-auto">
                 {abuse.map((a) => (
                   <li key={a.id}>
-                    {formatDT(a.created_at)} · {a.rule} · {a.ip ?? '—'}
+                    {formatDT(a.created_at, locale)} · {a.rule} · {a.ip ?? '—'}
                   </li>
                 ))}
               </ul>
@@ -564,7 +578,7 @@ export function AdminDashboard() {
                 run(
                   async () =>
                     apiSend('POST', `/api/admin/masters/${m.id}/time-off`, await token(), { startsAt, endsAt, reason }),
-                  'Отсутствие добавлено — эти слоты скрыты из записи',
+                  t('admin.timeOffAdded'),
                 )
               }
             />
@@ -575,7 +589,7 @@ export function AdminDashboard() {
       {/* ═══ Отзывы ═══ */}
       {tab === 'reviews' && (
         <div className="space-y-3">
-          {reviews.length === 0 && <p className="py-10 text-center text-text-secondary">Отзывов пока нет</p>}
+          {reviews.length === 0 && <p className="py-10 text-center text-text-secondary">{t('admin.noReviews')}</p>}
           {reviews.map((r) => (
             <div key={r.id} className="rounded-sm border border-line bg-bg-elevated p-4">
               <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
@@ -584,9 +598,9 @@ export function AdminDashboard() {
                     {'★'.repeat(r.rating)}
                     <span className="text-faint">{'★'.repeat(5 - r.rating)}</span>
                   </p>
-                  <p className="text-sm text-text-primary mt-1 break-words">{r.text ?? '— без текста —'}</p>
+                  <p className="text-sm text-text-primary mt-1 break-words">{r.text ?? `— ${t('admin.noText')} —`}</p>
                   <p className="text-xs text-text-secondary mt-1">
-                    {r.user.full_name} {r.user.phone ?? ''} · мастер {r.master.name} · {formatDT(r.created_at)}
+                    {r.user.full_name} {r.user.phone ?? ''} · {t('home.masterOf')} {r.master.name} · {formatDT(r.created_at, locale)}
                   </p>
                 </div>
                 <Button
@@ -599,7 +613,7 @@ export function AdminDashboard() {
                     )
                   }
                 >
-                  {r.is_published ? 'Скрыть' : 'Опубликовать'}
+                  {r.is_published ? t('admin.hide') : t('admin.publish')}
                 </Button>
               </div>
             </div>
@@ -613,11 +627,11 @@ export function AdminDashboard() {
           {Object.entries(SETTINGS_LABELS).map(([key, label]) => (
             <SettingField
               key={key}
-              label={label}
+              label={t(label)}
               value={settings[key] ?? ''}
               busy={busy}
               onSave={(value) =>
-                run(async () => apiSend('PUT', '/api/admin/settings', await token(), { key, value }), 'Настройка сохранена')
+                run(async () => apiSend('PUT', '/api/admin/settings', await token(), { key, value }), t('admin.settingSaved'))
               }
             />
           ))}
@@ -636,6 +650,7 @@ function ServiceRow({
   busy: boolean;
   onSave: (patch: Partial<AdminService>) => void;
 }) {
+  const { t } = useI18n();
   const [price, setPrice] = useState(String(service.base_price));
   const [duration, setDuration] = useState(String(service.duration_min));
   const dirty = price !== String(service.base_price) || duration !== String(service.duration_min);
@@ -648,11 +663,11 @@ function ServiceRow({
         <p className="text-xs text-text-secondary/60">{service.category.name}</p>
       </div>
       <label className="flex items-center gap-2 text-xs text-text-secondary">
-        сом
+        {t('admin.currency')}
         <Input value={price} onChange={(e) => setPrice(e.target.value.replace(/\D/g, ''))} inputMode="numeric" className="!w-24 !h-9 !min-h-0" />
       </label>
       <label className="flex items-center gap-2 text-xs text-text-secondary">
-        мин
+        {t('common.min')}
         <Input value={duration} onChange={(e) => setDuration(e.target.value.replace(/\D/g, ''))} inputMode="numeric" className="!w-20 !h-9 !min-h-0" />
       </label>
       <div className="flex gap-2">
@@ -662,7 +677,7 @@ function ServiceRow({
           disabled={busy || !dirty}
           onClick={() => onSave({ base_price: Number(price), duration_min: Number(duration) })}
         >
-          Сохранить
+          {t('common.save')}
         </Button>
         <Button
           variant="text"
@@ -670,7 +685,7 @@ function ServiceRow({
           disabled={busy}
           onClick={() => onSave({ is_active: !service.is_active })}
         >
-          {service.is_active ? 'Скрыть' : 'Показать'}
+          {service.is_active ? t('admin.hide') : t('admin.show')}
         </Button>
       </div>
     </div>
@@ -686,6 +701,7 @@ function LimitsForm({
   busy: boolean;
   onSave: (v: { hourly_cap: number; daily_cap: number; budget_usd: number; est_cost_usd: number }) => void;
 }) {
+  const { t } = useI18n();
   const [hourly, setHourly] = useState(String(status.hourly_cap));
   const [daily, setDaily] = useState(String(status.daily_cap));
   const [budget, setBudget] = useState(String(status.budget_usd));
@@ -700,14 +716,14 @@ function LimitsForm({
     });
   };
   const fields: [string, string, (v: string) => void][] = [
-    ['Потолок генераций в час', hourly, setHourly],
-    ['Потолок генераций в сутки', daily, setDaily],
-    ['Бюджет, $', budget, setBudget],
-    ['Макс. цена генерации, $', est, setEst],
+    [t('admin.hourlyCap'), hourly, setHourly],
+    [t('admin.dailyCap'), daily, setDaily],
+    [t('admin.budgetUsd'), budget, setBudget],
+    [t('admin.maxCostUsd'), est, setEst],
   ];
   return (
     <form onSubmit={submit} className="rounded-sm border border-line bg-bg-elevated p-6">
-      <h3 className="text-sm uppercase tracking-wide text-text-secondary/70 mb-3">Лимиты и бюджет</h3>
+      <h3 className="text-sm uppercase tracking-wide text-text-secondary/70 mb-3">{t('admin.limitsBudget')}</h3>
       <div className="grid grid-cols-2 gap-3 mb-4">
         {fields.map(([label, value, set]) => (
           <label key={label} className="text-xs text-text-secondary">
@@ -717,13 +733,14 @@ function LimitsForm({
         ))}
       </div>
       <Button type="submit" variant="outline" disabled={busy}>
-        Сохранить лимиты
+        {t('admin.saveLimits')}
       </Button>
     </form>
   );
 }
 
 function GrantForm({ busy, onGrant }: { busy: boolean; onGrant: (email: string, amount: number) => void }) {
+  const { t } = useI18n();
   const [email, setEmail] = useState('');
   const [amount, setAmount] = useState('1');
   return (
@@ -734,15 +751,15 @@ function GrantForm({ busy, onGrant }: { busy: boolean; onGrant: (email: string, 
       }}
       className="rounded-sm border border-line bg-bg-elevated p-6"
     >
-      <h3 className="text-sm uppercase tracking-wide text-text-secondary/70 mb-3">Бонусные попытки</h3>
+      <h3 className="text-sm uppercase tracking-wide text-text-secondary/70 mb-3">{t('admin.bonusTries')}</h3>
       <div className="flex flex-col sm:flex-row gap-3 mb-4">
-        <Input type="email" placeholder="email клиента" value={email} onChange={(e) => setEmail(e.target.value)} required />
+        <Input type="email" placeholder={t('admin.clientEmail')} value={email} onChange={(e) => setEmail(e.target.value)} required />
         <Input value={amount} onChange={(e) => setAmount(e.target.value.replace(/\D/g, ''))} inputMode="numeric" className="sm:!w-24" />
       </div>
       <Button type="submit" variant="outline" disabled={busy || !email}>
-        Начислить
+        {t('admin.grant')}
       </Button>
-      <p className="mt-2 text-xs text-text-secondary/60">Каждое начисление записывается в журнал квот.</p>
+      <p className="mt-2 text-xs text-text-secondary/60">{t('admin.grantAudit')}</p>
     </form>
   );
 }

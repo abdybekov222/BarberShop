@@ -1,6 +1,7 @@
 'use client';
 
 import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react';
+import { useI18n } from '../i18n/I18nProvider';
 
 const SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ?? '';
 
@@ -26,6 +27,7 @@ export interface TurnstileHandle {
  * а token() возвращает пустую строку — сервер в этом режиме капчу тоже не проверяет.
  */
 export const Turnstile = forwardRef<TurnstileHandle>(function Turnstile(_props, ref) {
+  const { t } = useI18n();
   const box = useRef<HTMLDivElement>(null);
   const widgetId = useRef<string | null>(null);
 
@@ -62,9 +64,9 @@ export const Turnstile = forwardRef<TurnstileHandle>(function Turnstile(_props, 
         }
         await new Promise((r) => setTimeout(r, 250));
       }
-      throw new Error('Подтвердите, что вы не робот');
+      throw new Error(t('captcha.required'));
     },
-  }));
+  }), [t]);
 
   if (!SITE_KEY) return null;
   return <div ref={box} className="my-3 min-h-[65px]" />;

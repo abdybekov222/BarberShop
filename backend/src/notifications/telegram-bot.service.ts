@@ -1,9 +1,10 @@
 import { Injectable, Logger, OnApplicationBootstrap, OnModuleDestroy } from '@nestjs/common';
 import { createHmac } from 'crypto';
+import { formatKgs } from '@barbershop/shared';
 import type { OrderStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { formatSalonDateTime, salonDayRange } from '../common/time';
-import { TelegramService, escapeHtml } from './telegram.service';
+import { TelegramService, escapeHtml, type InlineButton } from './telegram.service';
 
 interface TgUpdate {
   update_id: number;
@@ -193,14 +194,24 @@ export class TelegramBotService implements OnApplicationBootstrap, OnModuleDestr
         items: { include: { service: { select: { name: true } } } },
       },
     });
-    if (rows.length === 0) return this.tg.send(String(chatId), 'На сегодня записей нет.');
-    const text = rows
-      .map((b) => {
-        const time = b.starts_at.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Bishkek' });
-        return `<b>${time}</b> ${escapeHtml(b.user.full_name)} ${b.user.phone ?? ''}\n   ${escapeHtml(b.master.name)} · ${escapeHtml(b.items.map((i) => i.service.name).join(', '))}${b.status === 'pending' ? ' · ⚠️ не подтверждена' : ''}`;
-      })
-      .join('\n');
-    return this.tg.send(String(chatId), `📅 <b>Сегодня, ${rows.length}</b>\n${text}`);
+    if (rows.length === 0) {
+      return this.tg.send(String(chatId), 'На сегодня записей нет.', [[{ text: '📋 Открыть админ-панель', url: `${SITE}/admin` }]]);
+    }
+    await this.tg.send(String(chatId), `📅 <b>Сегодня, ${rows.length}</b> · выберите действие под записью:`);
+    for (const b of rows) {
+      const time = b.starts_at.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Bishkek' });
+      const text = `<b>${time}</b> ${escapeHtml(b.user.full_name)} ${b.user.phone ?? ''}\n${escapeHtml(b.master.name)} · ${escapeHtml(b.items.map((i) => i.service.name).join(', '))}${b.status === 'pending' ? '\n⚠️ Ожидает подтверждения' : '\n✅ Подтверждена'}`;
+      await this.tg.send(
+        String(chatId),
+        text,
+        b.status === 'pending'
+          ? [[
+              { text: '✅ Подтвердить', callback_data: `bk:ok:${b.id}` },
+              { text: '❌ Отменить', callback_data: `bk:no:${b.id}` },
+            ]]
+          : undefined,
+      );
+    }
   }
 
   private async newOrders(chatId: number) {
@@ -209,13 +220,38 @@ export class TelegramBotService implements OnApplicationBootstrap, OnModuleDestr
       orderBy: { created_at: 'desc' },
       take: 15,
     });
-    if (rows.length === 0) return this.tg.send(String(chatId), 'Открытых заказов нет.');
-    return this.tg.send(
-      String(chatId),
-      rows
-        .map((o) => `№${o.number} · ${escapeHtml(o.customer_name)} ${o.phone} · ${o.total} сом · ${ORDER_STATUS_LABEL[o.status]}`)
-        .join('\n'),
-    );
+    if (rows.length === 0) {
+      return this.tg.send(String(chatId), 'Открытых заказов нет.', [[{ text: '📋 Открыть админ-панель', url: `${SITE}/admin?tab=orders` }]]);
+    }
+    for (const o of rows) {
+      await this.tg.send(
+        String(chatId),
+        `🛍 <b>Заказ №${o.number}</b> · ${ORDER_STATUS_LABEL[o.status]}\n${escapeHtml(o.customer_name)} · ${o.phone}\n${formatKgs(o.total)}`,
+        this.orderButtons(o.status, o.id),
+      );
+    }
+  }
+
+  private orderButtons(status: OrderStatus, id: string): InlineButton[][] | undefined {
+    if (status === 'new' || status === 'paid') {
+      return [[
+        { text: '🧾 В сборку', callback_data: `or:processing:${id}` },
+        { text: '❌ Отменить', callback_data: `or:cancel:${id}` },
+      ]];
+    }
+    if (status === 'processing') {
+      return [[
+        { text: '📦 Готов к выдаче', callback_data: `or:ready:${id}` },
+        { text: '❌ Отменить', callback_data: `or:cancel:${id}` },
+      ]];
+    }
+    if (status === 'ready') {
+      return [[
+        { text: '✅ Выдан', callback_data: `or:done:${id}` },
+        { text: '❌ Отменить', callback_data: `or:cancel:${id}` },
+      ]];
+    }
+    return undefined;
   }
 
   private async onCallback(q: NonNullable<TgUpdate['callback_query']>) {
@@ -226,48 +262,87 @@ export class TelegramBotService implements OnApplicationBootstrap, OnModuleDestr
     }
     const [kind, action, id] = (q.data ?? '').split(':');
     let note = '';
+    let nextButtons: InlineButton[][] | undefined;
 
-    if (kind === 'bk' && id) {
-      const status = action === 'ok' ? 'confirmed' : 'cancelled_by_salon';
-      const b = await this.prisma.booking.update({
-        where: { id },
-        data: {
-          status,
-          ...(status === 'cancelled_by_salon' ? { cancelled_at: new Date(), cancel_reason: 'Отменено администратором' } : {}),
-          updated_at: new Date(),
-        },
-        include: { user: true, master: true },
-      });
-      note = status === 'confirmed' ? '✅ Подтверждена' : '❌ Отменена';
-      if (b.user.telegram_chat_id) {
-        await this.tg.send(
-          String(b.user.telegram_chat_id),
-          status === 'confirmed'
-            ? `Ваша запись подтверждена: ${formatSalonDateTime(b.starts_at)}, мастер ${escapeHtml(b.master.name)}. Ждём вас!`
-            : `К сожалению, запись на ${formatSalonDateTime(b.starts_at)} отменена салоном. Мы свяжемся с вами, чтобы подобрать другое время.`,
-        );
+    if (kind === 'bk' && id && ['ok', 'no'].includes(action ?? '')) {
+      const booking = await this.prisma.booking.findUnique({ where: { id }, include: { user: true, master: true } });
+      if (!booking || booking.status !== 'pending') {
+        note = 'Запись уже обработана';
+      } else {
+        const status = action === 'ok' ? 'confirmed' : 'cancelled_by_salon';
+        const changed = await this.prisma.booking.updateMany({
+          where: { id, status: 'pending' },
+          data: {
+            status,
+            ...(status === 'cancelled_by_salon' ? { cancelled_at: new Date(), cancel_reason: 'Отменено администратором' } : {}),
+            updated_at: new Date(),
+          },
+        });
+        if (!changed.count) {
+          note = 'Запись уже обработана';
+        } else {
+          note = status === 'confirmed' ? '✅ Подтверждена' : '❌ Отменена';
+          if (booking.user.telegram_chat_id) {
+            await this.tg.send(
+              String(booking.user.telegram_chat_id),
+              status === 'confirmed'
+                ? `Ваша запись подтверждена: ${formatSalonDateTime(booking.starts_at)}, мастер ${escapeHtml(booking.master.name)}. Ждём вас!`
+                : `К сожалению, запись на ${formatSalonDateTime(booking.starts_at)} отменена салоном. Мы свяжемся с вами, чтобы подобрать другое время.`,
+            );
+          }
+        }
       }
     } else if (kind === 'or' && id) {
-      const map: Record<string, OrderStatus> = { ready: 'ready', done: 'completed', cancel: 'cancelled' };
-      const status = map[action ?? ''];
-      if (!status) return;
-      const o = await this.prisma.order.update({
-        where: { id },
-        data: { status, updated_at: new Date() },
-        include: { user: true },
-      });
-      note = `Статус: ${ORDER_STATUS_LABEL[status]}`;
-      if (o.user.telegram_chat_id) {
-        await this.tg.send(String(o.user.telegram_chat_id), `Заказ №${o.number}: ${ORDER_STATUS_LABEL[status]}.`);
+      const targets: Record<string, OrderStatus> = { processing: 'processing', ready: 'ready', done: 'completed', cancel: 'cancelled' };
+      const status = targets[action ?? ''];
+      const order = status ? await this.prisma.order.findUnique({ where: { id }, include: { items: true, user: true } }) : null;
+      const transitions: Record<OrderStatus, OrderStatus[]> = {
+        new: ['processing', 'cancelled'],
+        paid: ['processing', 'cancelled'],
+        processing: ['ready', 'cancelled'],
+        ready: ['completed', 'cancelled'],
+        completed: [],
+        cancelled: [],
+      };
+      if (!status || !order || !transitions[order.status].includes(status)) {
+        note = 'Статус уже изменён. Обновите список командой /orders.';
+      } else {
+        const changed = await this.prisma.$transaction(async (tx) => {
+          const updated = await tx.order.updateMany({
+            where: { id, status: order.status },
+            data: { status, updated_at: new Date() },
+          });
+          if (!updated.count) return false;
+          if (status === 'cancelled') {
+            await Promise.all(order.items.map((item) => tx.product.update({
+              where: { id: item.product_id },
+              data: { stock: { increment: item.qty } },
+            })));
+          }
+          return true;
+        });
+        if (!changed) {
+          note = 'Статус уже изменён. Обновите список командой /orders.';
+        } else {
+          note = `Статус: ${ORDER_STATUS_LABEL[status]}`;
+          nextButtons = this.orderButtons(status, order.id);
+          if (order.user.telegram_chat_id) {
+            await this.tg.send(String(order.user.telegram_chat_id), `Заказ №${order.number}: ${ORDER_STATUS_LABEL[status]}.`);
+          }
+        }
       }
+    } else {
+      note = 'Действие не найдено';
     }
 
-    await this.tg.call('answerCallbackQuery', { callback_query_id: q.id, text: note || 'Готово' });
-    if (note && q.message) {
+    await this.tg.call('answerCallbackQuery', { callback_query_id: q.id, text: note });
+    if (q.message) {
       await this.tg.call('editMessageText', {
         chat_id: chatId,
         message_id: q.message.message_id,
         text: `${q.message.text ?? ''}\n\n${note}`,
+        parse_mode: 'HTML',
+        reply_markup: { inline_keyboard: nextButtons ?? [] },
       });
     }
   }

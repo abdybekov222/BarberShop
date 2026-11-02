@@ -10,6 +10,8 @@ import { useAuth } from '../../../lib/auth-context';
 import { apiGet, apiSend } from '../../../lib/api';
 import { ORDER_STATUS_LABEL } from '../../../lib/shop';
 import { useI18n } from '../../../i18n/I18nProvider';
+import { useDialog } from '../../../components/ui/DialogProvider';
+import type { TKey } from '../../../i18n/dictionaries';
 
 interface Order {
   id: string;
@@ -35,6 +37,7 @@ const STATUS_CLS: Record<string, string> = {
 export default function OrdersPage() {
   const { user, loading } = useAuth();
   const { t, lang } = useI18n();
+  const dialog = useDialog();
   const locale = lang === 'en' ? 'en-GB' : lang === 'ky' ? 'ky-KG' : 'ru-RU';
   const router = useRouter();
   const [orders, setOrders] = useState<Order[] | null>(null);
@@ -56,7 +59,7 @@ export default function OrdersPage() {
   if (loading || !user) return null;
 
   const cancel = async (id: string) => {
-    if (!window.confirm(t('acc.orderCancelAsk'))) return;
+    if (!(await dialog.confirm({ title: t('dlg.orderCancelTitle'), message: t('acc.orderCancelAsk'), danger: true }))) return;
     try {
       await apiSend('POST', `/api/orders/${id}/cancel`, await user.getIdToken(), {});
       setMsg(t('acc.orderCancelled'));
@@ -91,7 +94,7 @@ export default function OrdersPage() {
             <li key={o.id} className="rounded-3xl border border-line bg-bg-elevated p-5">
               <div className="flex flex-wrap items-baseline justify-between gap-2">
                 <p className="font-serif text-2xl text-text-primary">№{o.number}</p>
-                <p className={`text-sm font-medium ${STATUS_CLS[o.status] ?? ''}`}>{ORDER_STATUS_LABEL[o.status] ?? o.status}</p>
+                <p className={`text-sm font-medium ${STATUS_CLS[o.status] ?? ''}`}>{t(`order.status.${o.status}` as TKey) || ORDER_STATUS_LABEL[o.status] || o.status}</p>
               </div>
               <p className="text-xs">
                 {new Date(o.created_at).toLocaleString(locale, { timeZone: 'Asia/Bishkek', dateStyle: 'medium', timeStyle: 'short' })} ·{' '}

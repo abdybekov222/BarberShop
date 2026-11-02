@@ -7,6 +7,7 @@ import { useAuth } from '../../../lib/auth-context';
 import { apiGet, apiSend } from '../../../lib/api';
 import { useI18n } from '../../../i18n/I18nProvider';
 import { PhoneInput, formatKgPhone, phoneValue } from '../../../components/ui/PhoneInput';
+import { useDialog } from '../../../components/ui/DialogProvider';
 
 interface Profile {
   email: string | null;
@@ -21,6 +22,7 @@ interface Profile {
 export default function ProfilePage() {
   const { user, signOut, refreshUser } = useAuth();
   const { t } = useI18n();
+  const dialog = useDialog();
   const router = useRouter();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [name, setName] = useState('');
@@ -63,7 +65,7 @@ export default function ProfilePage() {
   };
 
   const removeAccount = async () => {
-    if (!window.confirm(t('acc.deleteAsk'))) return;
+    if (!(await dialog.confirm({ title: t('dlg.accountDeleteTitle'), message: t('acc.deleteAsk'), danger: true, confirmLabel: t('common.delete') }))) return;
     setBusy(true);
     try {
       await apiSend('DELETE', '/api/users/me', await user.getIdToken());

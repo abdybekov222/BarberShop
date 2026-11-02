@@ -87,7 +87,7 @@ export function StepMaster({ state, dispatch, onBack, onNext }: Props) {
                 </div>
                 {m.rating && (
                   <div className="shrink-0">
-                    <StarRating value={Number(m.rating)} />
+                    <StarRating value={Number(m.rating)} label={t('shop.rating')} />
                   </div>
                 )}
               </button>

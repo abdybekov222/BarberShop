@@ -11,6 +11,7 @@ import { BookingCta } from '../components/BookingCta';
 import { THEME_INIT_SCRIPT } from '../components/ThemeToggle';
 import { StoreProvider } from '../store/StoreProvider';
 import { I18nProvider } from '../i18n/I18nProvider';
+import { DialogProvider } from '../components/ui/DialogProvider';
 import { getServerI18n } from '../i18n/server';
 
 // Шрифты self-hosted через next/font, subset кириллица + латиница, display: swap (ТЗ §2.1)
@@ -74,6 +75,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       </head>
       <body className="flex min-h-[100dvh] flex-col text-[15px]">
         <I18nProvider initial={lang}>
+        <DialogProvider>
         <StoreProvider>
         <AuthProvider>
           <Preloader />
@@ -83,6 +85,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           <BookingCta />
         </AuthProvider>
         </StoreProvider>
+        </DialogProvider>
         </I18nProvider>
         {/* Schema.org — HairSalon (ТЗ §2.5 SEO) */}
         <script

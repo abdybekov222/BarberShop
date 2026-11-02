@@ -7,7 +7,7 @@ import { getServerI18n } from '../../i18n/server';
 
 export function generateMetadata(): Metadata {
   const { t } = getServerI18n();
-  return { title: t('pg.contacts.title'), description: `${BRAND.full}: ${BRAND.address}` };
+  return { title: t('pg.contacts.title'), description: `${BRAND.full}: ${t('contact.address')}` };
 }
 
 const { lat: LAT, lon: LON } = BRAND.geo;
@@ -34,7 +34,7 @@ export default function ContactsPage() {
             <div className="flex gap-4">
               <MapPin size={22} strokeWidth={1.3} className="shrink-0 text-gold-500" />
               <div>
-                <p className="font-serif text-3xl text-text-primary">{BRAND.address}</p>
+                <p className="font-serif text-3xl text-text-primary">{t('contact.address')}</p>
                 <div className="mt-4 flex flex-wrap gap-3">
                   <a
                     href={`https://2gis.kg/bishkek/geo/${LON},${LAT}`}
@@ -59,10 +59,10 @@ export default function ContactsPage() {
             <div className="flex gap-4">
               <Clock size={22} strokeWidth={1.3} className="shrink-0 text-gold-500" />
               <ul className="w-full max-w-sm space-y-2">
-                {BRAND.hours.map((h) => (
+                {BRAND.hours.map((h, index) => (
                   <li key={h.day} className="flex justify-between gap-6 border-b hairline pb-2">
-                    <span>{h.day}</span>
-                    <span className={h.time === 'Выходной' ? 'text-text-secondary/60' : 'text-text-primary'}>{h.time}</span>
+                    <span>{t(index === 0 ? 'hours.weekdays' : 'hours.sunday')}</span>
+                    <span className={index === 0 ? 'text-text-primary' : 'text-text-secondary/60'}>{index === 0 ? h.time : t('hours.closed')}</span>
                   </li>
                 ))}
               </ul>

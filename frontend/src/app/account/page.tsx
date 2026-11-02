@@ -7,7 +7,6 @@ import { ArrowRight, CalendarDays, LayoutDashboard, MessageSquare, Package, Scan
 import { formatKgs } from '@barbershop/shared';
 import { useAuth } from '../../lib/auth-context';
 import { apiGet } from '../../lib/api';
-import { ORDER_STATUS_LABEL } from '../../lib/shop';
 import { useI18n } from '../../i18n/I18nProvider';
 import type { TKey } from '../../i18n/dictionaries';
 
@@ -152,7 +151,7 @@ export default function AccountOverview() {
             <>
               <p className="mt-3 font-serif text-3xl text-text-primary">№{order.number}</p>
               <p className="text-sm">
-                {ORDER_STATUS_LABEL[order.status]} · {formatKgs(order.total)}
+                {t(`order.status.${order.status}` as TKey)} · {formatKgs(order.total)}
               </p>
               <Link href="/account/orders" className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-gold-500">
                 {t('acc.orders')} <ArrowRight size={14} />
@@ -194,6 +193,7 @@ export default function AccountOverview() {
 
 /** Быстрые ссылки админа вместо клиентских карточек. */
 function AdminShortcuts() {
+  const { t } = useI18n();
   const { user } = useAuth();
   const [pending, setPending] = useState<number | null>(null);
 
@@ -207,20 +207,20 @@ function AdminShortcuts() {
   }, [user]);
 
   const links = [
-    { tab: 'bookings', label: 'Записи', note: pending === null ? 'Подтверждение и статусы' : `Ждут подтверждения: ${pending}`, Icon: CalendarDays },
-    { tab: 'orders', label: 'Заказы', note: 'Статусы и оплата', Icon: Package },
-    { tab: 'products', label: 'Товары', note: 'Каталог и остатки', Icon: ShoppingBag },
-    { tab: 'reviews', label: 'Отзывы', note: 'Модерация', Icon: MessageSquare },
+    { tab: 'bookings', label: t('admin.tab.bookings'), note: pending === null ? t('admin.bookingManagement') : t('admin.waitingConfirmation').replace('{count}', String(pending)), Icon: CalendarDays },
+    { tab: 'orders', label: t('admin.tab.orders'), note: t('admin.orderManagement'), Icon: Package },
+    { tab: 'products', label: t('admin.tab.products'), note: t('admin.productManagement'), Icon: ShoppingBag },
+    { tab: 'reviews', label: t('admin.tab.reviews'), note: t('admin.reviewManagement'), Icon: MessageSquare },
   ];
 
   return (
     <section className={`${card} md:col-span-2`}>
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-2 text-sm">
-          <LayoutDashboard size={16} className="text-gold-500" /> Админ-панель
+          <LayoutDashboard size={16} className="text-gold-500" /> {t('acc.admin')}
         </div>
         <Link href="/admin" className="inline-flex items-center gap-2 text-sm font-semibold text-gold-500">
-          Открыть <ArrowRight size={14} />
+          {t('admin.openPanel')} <ArrowRight size={14} />
         </Link>
       </div>
       <div className="mt-4 grid gap-3 sm:grid-cols-2">

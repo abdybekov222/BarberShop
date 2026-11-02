@@ -72,7 +72,7 @@ export function ProductReviews({ productId, reviews: initial }: { productId: str
                 <div className="flex items-center justify-between gap-4">
                   <span className="font-medium text-text-primary">{r.author}</span>
                   <span className="text-xs text-text-secondary">
-                    {new Date(r.created_at).toLocaleDateString(lang === 'en' ? 'en-GB' : 'ru-RU')}
+                    {new Date(r.created_at).toLocaleDateString(lang === 'en' ? 'en-GB' : lang === 'ky' ? 'ky-KG' : 'ru-RU')}
                   </span>
                 </div>
                 <div className="mt-1">
@@ -93,7 +93,7 @@ export function ProductReviews({ productId, reviews: initial }: { productId: str
           </Link>
         ) : (
           <div className="mt-4 space-y-3">
-            <div className="flex gap-1" role="radiogroup" aria-label="Оценка">
+            <div className="flex gap-1" role="radiogroup" aria-label={t('shop.rating')}>
               {[1, 2, 3, 4, 5].map((n) => (
                 <button
                   key={n}

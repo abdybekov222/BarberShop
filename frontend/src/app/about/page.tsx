@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
-import { BRAND, PHOTOS } from '../../lib/brand';
+import { PHOTOS } from '../../lib/brand';
 import { getServerI18n } from '../../i18n/server';
 import { ABOUT_COPY } from './copy';
 
@@ -120,7 +120,7 @@ export default async function AboutPage() {
         <div className="mx-auto flex max-w-screen flex-col gap-6 px-4 py-16 sm:px-6 md:flex-row md:items-center md:justify-between lg:px-10">
           <div>
             <h2 className="font-serif text-4xl uppercase">{c.visit}</h2>
-            <p className="mt-2">{BRAND.address} · {c.hours}</p>
+            <p className="mt-2">{t('contact.address')} · {c.hours}</p>
           </div>
           <Link
             href="/booking"

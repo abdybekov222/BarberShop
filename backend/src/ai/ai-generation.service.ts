@@ -81,7 +81,7 @@ export class AiGenerationService {
     if (existing) return this.view(existing);
 
     // 4. Кэш
-    const modelVersion = process.env.AI_MODEL_VERSION ?? 'v1';
+    const modelVersion = process.env.AI_MODEL_VERSION ?? 'gemini-3.1-flash-image';
     const cached = await this.prisma.aiGeneration.findFirst({
       where: {
         photo: { sha256: photo.sha256 },
@@ -204,6 +204,26 @@ export class AiGenerationService {
       include: { style: true },
     });
     return rows.map((g) => this.view(g));
+  }
+
+  /** Removes a user's generated result while preserving quota and booking history. */
+  async removeResult(userId: string, generationId: string) {
+    const generation = await this.prisma.aiGeneration.findUnique({ where: { id: generationId } });
+    if (!generation || generation.user_id !== userId) throw new NotFoundException();
+    if (generation.status === 'queued' || generation.status === 'processing') {
+      throw new BadRequestException('AI_GENERATION_IN_PROGRESS');
+    }
+    if (!generation.result_key) return { ok: true };
+
+    const resultKey = generation.result_key;
+    const updated = await this.prisma.aiGeneration.updateMany({
+      where: { id: generation.id, user_id: userId, result_key: resultKey },
+      data: { result_key: null, result_expires_at: null },
+    });
+    if (updated.count > 0 && !generation.cache_hit && !/^https?:/.test(resultKey)) {
+      await this.storage.remove(resultKey);
+    }
+    return { ok: true };
   }
 
   private view(g: AiGeneration & { style?: HairStyle }) {

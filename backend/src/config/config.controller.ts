@@ -3,7 +3,6 @@ import { CatalogService } from '../catalog/catalog.service';
 import { AiBudgetService } from '../ai/ai-budget.service';
 import { Public } from '../auth/public.decorator';
 import { activeAiProvider } from '../ai/ai.constants';
-import { geminiState } from '../ai/providers/gemini.provider';
 
 /**
  * GET /api/config — публичный endpoint (кэш ≤ 60 с на клиенте).
@@ -27,7 +26,7 @@ export class ConfigController {
       ...base,
       ai_enabled: !(aiStatus?.kill_switch ?? true),
       ai_remaining_usd: aiStatus?.remaining_usd ?? 0,
-      ai_demo: activeAiProvider() === 'mock' || geminiState.quotaBlockedUntil > Date.now(),
+      ai_demo: activeAiProvider() === 'mock',
     };
   }
 }

@@ -24,7 +24,7 @@ Blueprint генерирует `JWT_SECRET` и `STORAGE_SIGNING_SECRET`. Не к
 
 - Для входа через Google задайте Firebase-переменные `NEXT_PUBLIC_FIREBASE_*` в `bars-web`, а `FIREBASE_PROJECT_ID` (и, если требуется сервисному аккаунту, `FIREBASE_CLIENT_EMAIL` и `FIREBASE_PRIVATE_KEY`) в `bars-api`. Добавьте URL сайта в Firebase Authorized domains.
 - Для проверки Cloudflare Turnstile задайте `NEXT_PUBLIC_TURNSTILE_SITE_KEY` в `bars-web` и `TURNSTILE_SECRET_KEY` в `bars-api`.
-- Для генерации изображений задайте `GEMINI_API_KEY` и `AI_PROVIDER=gemini`; без ключа Blueprint оставляет демонстрационный `AI_PROVIDER=mock`.
+- Для генерации изображений добавьте `GEMINI_API_KEY` в `bars-api`. Blueprint включает `AI_PROVIDER=gemini` и модель `gemini-3.1-flash-image`. Задайте ключ в настройках окружения Render; не добавляйте его в репозиторий. Стандартный выход 1K стоит около $0.067 за изображение, поэтому приложение считает $0.07 фактической стоимостью и резервирует $0.08 на генерацию.
 - Для Telegram уведомлений задайте `TELEGRAM_BOT_TOKEN`, `TELEGRAM_OWNER_CHAT_ID` и `PUBLIC_SITE_URL` в `bars-api`.
 - `REDIS_URL` необязателен. Без Redis фоновые задачи выполняются в процессе API, а временное хранилище и лимиты не разделяются между экземплярами.
 

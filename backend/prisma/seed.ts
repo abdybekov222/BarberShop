@@ -66,7 +66,7 @@ async function main() {
       budget_usd: 10,
       spent_usd: 0,
       reserved_usd: 0,
-      est_cost_usd: 0.05,
+      est_cost_usd: 0.08,
       hourly_cap: 5,
       daily_cap: 15,
       kill_switch: false,

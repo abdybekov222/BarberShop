@@ -337,7 +337,7 @@ export function BookingWizard() {
 
       {/* Progress bar (шаги 1–4) */}
       {state.step <= 4 && (
-        <div className="mb-8" aria-label={`Шаг ${state.step} из 4`}>
+        <div className="mb-8" aria-label={t('bk.stepOf').replace('{step}', String(state.step))}>
           <div className="flex items-center justify-between mb-3">
             {STEPS.map((label, i) => {
               const n = (i + 1) as 1 | 2 | 3 | 4;

@@ -5,6 +5,9 @@ import { formatKgs } from '@barbershop/shared';
 import { apiGet, apiSend } from '../../lib/api';
 import { ORDER_STATUS_LABEL } from '../../lib/shop';
 import { Select } from '../../components/ui/Select';
+import { useDialog } from '../../components/ui/DialogProvider';
+import { useI18n } from '../../i18n/I18nProvider';
+import type { TKey } from '../../i18n/dictionaries';
 
 interface Order {
   id: string;
@@ -31,6 +34,9 @@ const NEXT: Record<string, string[]> = {
 
 /** Управление заказами магазина: фильтр, поиск, пагинация, смена статуса. */
 export function AdminOrders({ token }: { token: () => Promise<string | null> }) {
+  const { t, lang } = useI18n();
+  const locale = lang === 'en' ? 'en-GB' : lang === 'ky' ? 'ky-KG' : 'ru-RU';
+  const dialog = useDialog();
   const [status, setStatus] = useState('');
   const [q, setQ] = useState('');
   const [page, setPage] = useState(1);
@@ -49,7 +55,7 @@ export function AdminOrders({ token }: { token: () => Promise<string | null> }) 
   }, [load]);
 
   const setOrderStatus = async (id: string, s: string) => {
-    if (s === 'cancelled' && !window.confirm('Отменить заказ? Товары вернутся на склад.')) return;
+    if (s === 'cancelled' && !(await dialog.confirm({ title: t('dlg.orderCancelTitle'), message: t('dlg.orderCancelMessage'), danger: true }))) return;
     await apiSend('PATCH', `/api/admin/orders/${id}/status`, await token(), { status: s });
     await load();
   };
@@ -59,13 +65,13 @@ export function AdminOrders({ token }: { token: () => Promise<string | null> }) 
       <div className="mb-4 flex flex-wrap gap-2">
         <Select
           size="sm"
-          label="Статус"
+          label={t('ui.status')}
           value={status}
           onChange={(s) => {
             setStatus(s);
             setPage(1);
           }}
-          options={[{ value: '', label: 'Все статусы' }, ...Object.keys(ORDER_STATUS_LABEL).map((s) => ({ value: s, label: ORDER_STATUS_LABEL[s]! }))]}
+          options={[{ value: '', label: t('shop.all') }, ...Object.keys(ORDER_STATUS_LABEL).map((s) => ({ value: s, label: t(`order.status.${s}` as TKey) }))]}
         />
         <input
           value={q}
@@ -73,7 +79,7 @@ export function AdminOrders({ token }: { token: () => Promise<string | null> }) 
             setQ(e.target.value);
             setPage(1);
           }}
-          placeholder="№, имя или телефон"
+          placeholder={t('admin.orderSearch')}
           className="h-9 rounded-sm border border-line bg-bg-elevated px-3 text-sm text-text-primary sm:ml-auto"
         />
       </div>
@@ -81,7 +87,7 @@ export function AdminOrders({ token }: { token: () => Promise<string | null> }) 
       {!data ? (
         <div className="h-40 animate-pulse rounded-sm bg-bg-elevated-2" />
       ) : data.items.length === 0 ? (
-        <p className="py-10 text-center">Заказов нет</p>
+        <p className="py-10 text-center">{t('admin.noOrders')}</p>
       ) : (
         <ul className="space-y-3">
           {data.items.map((o) => (
@@ -95,9 +101,9 @@ export function AdminOrders({ token }: { token: () => Promise<string | null> }) 
                     </a>
                   </p>
                   <p className="text-xs">
-                    {new Date(o.created_at).toLocaleString('ru-RU', { timeZone: 'Asia/Bishkek', dateStyle: 'short', timeStyle: 'short' })} ·{' '}
-                    {o.delivery === 'courier' ? `курьер: ${o.address}` : 'самовывоз'} ·{' '}
-                    {o.payment_method === 'cash' ? 'при получении' : o.paid_at ? 'оплачен картой' : 'ожидает оплаты'}
+                    {new Date(o.created_at).toLocaleString(locale, { timeZone: 'Asia/Bishkek', dateStyle: 'short', timeStyle: 'short' })} ·{' '}
+                    {o.delivery === 'courier' ? `${t('acc.courier')}: ${o.address}` : t('acc.pickup')} ·{' '}
+                    {o.payment_method === 'cash' ? t('acc.payCash') : o.paid_at ? t('acc.paidCard') : t('acc.awaitPay')}
                   </p>
                   <p className="mt-2 text-sm">{o.items.map((i) => `${i.name} × ${i.qty}`).join(', ')}</p>
                   {o.comment && <p className="mt-1 text-xs">«{o.comment}»</p>}
@@ -108,13 +114,13 @@ export function AdminOrders({ token }: { token: () => Promise<string | null> }) 
                     <Select
                       size="sm"
                       align="right"
-                      label="Статус заказа"
+                      label={t('admin.orderStatus')}
                       value={o.status}
                       onChange={(s) => s !== o.status && setOrderStatus(o.id, s)}
-                      options={[o.status, ...(NEXT[o.status] ?? [])].map((s) => ({ value: s, label: ORDER_STATUS_LABEL[s] ?? s }))}
+                      options={[o.status, ...(NEXT[o.status] ?? [])].map((s) => ({ value: s, label: t(`order.status.${s}` as TKey) }))}
                     />
                   ) : (
-                    <span className="text-xs">{ORDER_STATUS_LABEL[o.status]}</span>
+                    <span className="text-xs">{t(`order.status.${o.status}` as TKey)}</span>
                   )}
                 </div>
               </div>
@@ -126,13 +132,13 @@ export function AdminOrders({ token }: { token: () => Promise<string | null> }) 
       {data && data.pages > 1 && (
         <div className="mt-6 flex items-center justify-center gap-3 text-sm">
           <button disabled={page <= 1} onClick={() => setPage(page - 1)} className="h-10 rounded-sm border border-line px-4 disabled:opacity-30">
-            Назад
+            {t('shop.prev')}
           </button>
           <span>
             {page} / {data.pages}
           </span>
           <button disabled={page >= data.pages} onClick={() => setPage(page + 1)} className="h-10 rounded-sm border border-line px-4 disabled:opacity-30">
-            Вперёд
+            {t('shop.next')}
           </button>
         </div>
       )}

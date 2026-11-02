@@ -139,7 +139,7 @@ export function Header() {
             <Logo />
           </Link>
 
-          <ul className="hidden items-center gap-1 lg:flex" role="list">
+          <ul className="hidden items-center gap-1 xl:flex" role="list">
             {PRIMARY.map((l) => (
               <li key={l.href}>
                 <Link href={l.href} className={navLink(l.href)}>
@@ -212,7 +212,7 @@ export function Header() {
               {t('nav.book')}
             </Link>
             <button
-              className="ml-1 inline-flex h-11 w-11 items-center justify-center rounded-full text-text-primary hover:bg-subtle lg:hidden"
+              className="ml-1 inline-flex h-11 w-11 items-center justify-center rounded-full text-text-primary hover:bg-subtle xl:hidden"
               aria-label={open ? t('common.close') : t('nav.menu')}
               aria-expanded={open}
               onClick={() => setOpen((v) => !v)}
@@ -244,7 +244,7 @@ export function Header() {
 
       {/* Бургер-меню на весь экран (ТЗ §2.3) */}
       <div
-        className={`fixed inset-0 z-40 flex flex-col overflow-y-auto bg-bg-primary px-5 pb-[max(2rem,env(safe-area-inset-bottom))] pt-24 transition-[opacity,transform] duration-300 lg:hidden ${
+        className={`fixed inset-0 z-40 flex flex-col overflow-y-auto bg-bg-primary px-5 pb-[max(2rem,env(safe-area-inset-bottom))] pt-24 transition-[opacity,transform] duration-300 xl:hidden ${
           open ? 'translate-y-0 opacity-100' : 'pointer-events-none -translate-y-3 opacity-0'
         }`}
         role="dialog"
@@ -288,7 +288,7 @@ export function Header() {
           <a href={BRAND.phoneHref} className="block text-text-primary">
             {BRAND.phone}
           </a>
-          <p>{BRAND.address}</p>
+          <p>{t('contact.address')}</p>
         </div>
       </div>
     </>

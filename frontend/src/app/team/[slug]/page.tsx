@@ -42,9 +42,10 @@ async function getMaster(slug: string): Promise<MasterProfile | null> {
 }
 
 export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
+  const { t } = getServerI18n();
   const master = await getMaster(params.slug);
   if (!master) return { title: '404' };
-  return { title: master.name, description: master.bio ?? master.name };
+  return { title: master.name, description: master.bio ?? `${t('home.masterOf')} ${master.name}` };
 }
 
 export default async function MasterPage({ params }: { params: { slug: string } }) {
@@ -93,7 +94,7 @@ export default async function MasterPage({ params }: { params: { slug: string } 
           <RankBadge rank={master.rank} />
           <h1 className="mt-5 font-serif text-5xl sm:text-6xl">{master.name}</h1>
           <div className="mt-5 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
-            {master.rating && <StarRating value={Number(master.rating)} />}
+            {master.rating && <StarRating value={Number(master.rating)} label={t('shop.rating')} />}
             {master.experience_years ? <span>{t('pg.team.exp')}: {master.experience_years}</span> : null}
           </div>
           {master.specialties.length > 0 && (
@@ -168,7 +169,7 @@ export default async function MasterPage({ params }: { params: { slug: string } 
             '@context': 'https://schema.org',
             '@type': 'Person',
             name: master.name,
-            jobTitle: 'Барбер',
+            jobTitle: t('home.masterOf'),
             worksFor: { '@type': 'HairSalon', name: BRAND.full },
             image: master.photo_url ?? undefined,
           }),

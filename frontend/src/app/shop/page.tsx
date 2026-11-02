@@ -7,10 +7,10 @@ import { Pagination } from '../../components/shop/Pagination';
 import { getServerI18n } from '../../i18n/server';
 import type { ProductPage } from '../../lib/shop';
 
-export const metadata: Metadata = {
-  title: 'Магазин',
-  description: 'Помады и глины для укладки, масла для бороды, бритвы и подарочные наборы. Самовывоз из салона или курьер по Бишкеку.',
-};
+export function generateMetadata(): Metadata {
+  const { t } = getServerI18n();
+  return { title: t('shop.title'), description: t('shop.lead') };
+}
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
 const KEYS = ['q', 'category', 'minPrice', 'maxPrice', 'inStock', 'sort', 'page'] as const;

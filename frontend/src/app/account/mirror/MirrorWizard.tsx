@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Camera, Check, Scissors, ShieldCheck } from 'lucide-react';
+import { Camera, Check, Scissors, ShieldCheck, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { useAuth } from '../../../lib/auth-context';
 import { ApiError, apiGet, apiSend, type SalonConfig } from '../../../lib/api';
@@ -11,6 +11,7 @@ import { BeforeAfter } from '../../../components/BeforeAfter';
 import { Turnstile, type TurnstileHandle } from '../../../components/Turnstile';
 import { useI18n } from '../../../i18n/I18nProvider';
 import type { TKey } from '../../../i18n/dictionaries';
+import { useDialog } from '../../../components/ui/DialogProvider';
 
 // ─── Типы ──────────────────────────────────────────────────────────────────
 
@@ -71,11 +72,13 @@ function humanize(e: unknown, t: (k: TKey) => string): string {
 export function MirrorWizard() {
   const { user } = useAuth();
   const { t: tr } = useI18n();
+  const dialog = useDialog();
   const [demo, setDemo] = useState(false);
   const [step, setStep] = useState<Step>('loading');
   const [quota, setQuota] = useState<Quota | null>(null);
   const [styles, setStyles] = useState<Style[]>([]);
   const [history, setHistory] = useState<Generation[]>([]);
+  const [deletingHistoryId, setDeletingHistoryId] = useState<string | null>(null);
   const [activeStyleType, setActiveStyleType] = useState<keyof typeof STYLE_TYPE_LABELS>('haircut');
   const [selectedStyle, setSelectedStyle] = useState<Style | null>(null);
   const [photoId, setPhotoId] = useState<string | null>(null);
@@ -102,6 +105,19 @@ export function MirrorWizard() {
     const list = await apiGet<Generation[]>('/api/ai/generations', await token()).catch(() => []);
     setHistory(list.filter((g) => g.status === 'succeeded' && g.result_url));
   }, [token]);
+
+  const deleteLook = async (item: Generation) => {
+    if (!(await dialog.confirm({ title: tr('dlg.lookDeleteTitle'), message: tr('dlg.lookDeleteMessage'), danger: true, confirmLabel: tr('mr.delete') }))) return;
+    setDeletingHistoryId(item.id);
+    try {
+      await apiSend('DELETE', `/api/ai/generations/${item.id}`, await token());
+      setHistory((current) => current.filter((entry) => entry.id !== item.id));
+    } catch (e) {
+      setError(humanize(e, tr));
+    } finally {
+      setDeletingHistoryId(null);
+    }
+  };
 
   // Начальная загрузка: статус ИИ, профиль (согласие, квота), стили, история
   useEffect(() => {
@@ -162,9 +178,11 @@ export function MirrorWizard() {
             sessionStorage.removeItem('mirror-pending');
             await refreshProfile();
             setError(
-              gen.refunded
-                ? tr('mr.failed')
-                : tr('mr.failedNoRefund'),
+              gen.error_code === 'GEMINI_QUOTA_EXCEEDED'
+                ? tr('mr.err.providerQuota')
+                : gen.refunded
+                  ? tr('mr.failed')
+                  : tr('mr.failedNoRefund'),
             );
             setStep('styles');
           }
@@ -340,7 +358,7 @@ export function MirrorWizard() {
     return (
       <>
         <AiMaintenanceBanner />
-        <History items={history} tr={tr} />
+        <History items={history} tr={tr} onDelete={deleteLook} deletingId={deletingHistoryId} />
       </>
     );
   }
@@ -358,7 +376,7 @@ export function MirrorWizard() {
             <Button variant="gold">{tr('nav.book')}</Button>
           </Link>
         </div>
-        <History items={history} tr={tr} />
+        <History items={history} tr={tr} onDelete={deleteLook} deletingId={deletingHistoryId} />
       </div>
     );
   }
@@ -454,7 +472,7 @@ export function MirrorWizard() {
           </div>
           {error && <p role="alert" className="text-error text-sm mb-2">{error}</p>}
           <p className="flex items-center gap-2 text-xs text-text-secondary/70"><ShieldCheck size={14} className="text-gold-500" /> {tr('mr.freeCheck')}</p>
-          <History items={history} tr={tr} />
+          <History items={history} tr={tr} onDelete={deleteLook} deletingId={deletingHistoryId} />
         </div>
       )}
 
@@ -645,7 +663,7 @@ export function MirrorWizard() {
   );
 }
 
-function History({ items, tr }: { items: Generation[]; tr: (k: TKey) => string }) {
+function History({ items, tr, onDelete, deletingId }: { items: Generation[]; tr: (k: TKey) => string; onDelete: (item: Generation) => void; deletingId: string | null }) {
   if (items.length === 0) return null;
   return (
     <section className="mt-10">
@@ -662,6 +680,15 @@ function History({ items, tr }: { items: Generation[]; tr: (k: TKey) => string }
               <Link href={`/booking?ai=${g.id}`} className="text-xs text-gold-500 hover:text-gold-400">
                 {tr('mr.bookShort')} →
               </Link>
+              <button
+                type="button"
+                onClick={() => onDelete(g)}
+                disabled={deletingId === g.id}
+                aria-label={tr('mr.delete')}
+                className="mt-2 inline-flex min-h-9 items-center gap-1.5 text-xs text-error hover:text-error/80 disabled:opacity-50"
+              >
+                <Trash2 size={14} /> {deletingId === g.id ? tr('mr.deleting') : tr('mr.delete')}
+              </button>
             </div>
           </li>
         ))}

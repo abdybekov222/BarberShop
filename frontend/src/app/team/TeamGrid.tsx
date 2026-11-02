@@ -155,7 +155,7 @@ function MasterCard({ master, next, loaded }: { master: TeamMaster; next: string
         ) : null}
         {master.rating ? (
           <div className="mt-2">
-            <StarRating value={Number(master.rating)} />
+            <StarRating value={Number(master.rating)} label={t('shop.rating')} />
           </div>
         ) : null}
         {master.specialties?.length > 0 && (

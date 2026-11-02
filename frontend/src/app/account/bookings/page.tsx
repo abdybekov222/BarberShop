@@ -11,6 +11,7 @@ import { Button } from '../../../components/ui/Button';
 import { ReviewForm } from '../../../components/ReviewForm';
 import { useI18n } from '../../../i18n/I18nProvider';
 import type { TKey } from '../../../i18n/dictionaries';
+import { useDialog } from '../../../components/ui/DialogProvider';
 
 interface Booking {
   id: string;
@@ -47,6 +48,7 @@ function formatDateTime(iso: string, locale: string) {
 export default function BookingsPage() {
   const { user, loading } = useAuth();
   const { t, lang } = useI18n();
+  const dialog = useDialog();
   const locale = lang === 'en' ? 'en-GB' : lang === 'ky' ? 'ky-KG' : 'ru-RU';
   const router = useRouter();
   const [bookings, setBookings] = useState<Booking[]>([]);
@@ -78,7 +80,7 @@ export default function BookingsPage() {
     ['pending', 'confirmed'].includes(b.status) && new Date(b.starts_at) > new Date();
 
   const cancel = async (id: string) => {
-    if (!window.confirm(t('acc.cancelAsk'))) return;
+    if (!(await dialog.confirm({ title: t('dlg.bookingCancelTitle'), message: t('acc.cancelAsk'), danger: true }))) return;
     setMessage(null);
     try {
       await apiSend('DELETE', `/api/bookings/${id}`, await user.getIdToken(), {});

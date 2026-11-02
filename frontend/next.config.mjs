@@ -16,6 +16,8 @@ const api = new URL(process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001');
 const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
+  // Allows a clean local cache when a synced .next directory contains placeholders.
+  distDir: process.env.NEXT_DIST_DIR ?? '.next',
   transpilePackages: ['@barbershop/shared'],
   images: {
     formats: ['image/avif', 'image/webp'],

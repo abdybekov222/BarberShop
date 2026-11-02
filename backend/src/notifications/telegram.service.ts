@@ -156,8 +156,7 @@ export class TelegramService {
     ];
     await this.notifyOwner(lines.join('\n'), [
       [
-        { text: '📦 Собран', callback_data: `or:ready:${opts.orderId}` },
-        { text: '✅ Выдан', callback_data: `or:done:${opts.orderId}` },
+        { text: '🧾 В сборку', callback_data: `or:processing:${opts.orderId}` },
         { text: '❌ Отмена', callback_data: `or:cancel:${opts.orderId}` },
       ],
     ]);

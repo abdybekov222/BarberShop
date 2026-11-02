@@ -142,7 +142,7 @@ export default async function HomePage() {
         <div className="mx-auto w-full max-w-screen px-4 pb-28 pt-36 sm:px-6 sm:pb-20 lg:px-10">
           <div className="hero-reveal max-w-3xl">
             <p className="text-sm font-medium text-gold-500">{t('home.hero.kicker')}</p>
-            <h1 className="mt-4 font-serif text-[52px] leading-[0.95] sm:text-8xl lg:text-[112px]">
+            <h1 className="mt-4 font-serif text-[clamp(40px,9vw,112px)] leading-[0.95]">
               {t('home.hero.title1')}
               <br />
               <span className="text-gold-500">{t('home.hero.title2')}</span>
@@ -205,7 +205,7 @@ export default async function HomePage() {
         <section className="border-y border-line bg-bg-elevated">
           <div className="mx-auto grid max-w-screen gap-12 px-4 py-20 sm:px-6 lg:grid-cols-[5fr_7fr] lg:gap-20 lg:px-10 lg:py-28">
             <div className="relative hidden aspect-[4/5] overflow-hidden rounded-sm lg:block">
-              <Image src={PHOTOS.interior} alt="Зал BARS Barber Club" fill sizes="40vw" className="object-cover" />
+              <Image src={PHOTOS.interior} alt={t('home.interiorAlt')} fill sizes="40vw" className="object-cover" />
             </div>
             <div>
               <SectionHead title={t('home.prices.title')} href="/services" link={t('home.prices.all')} />
@@ -394,10 +394,10 @@ export default async function HomePage() {
                 </a>
               </dd>
             </div>
-            {BRAND.hours.map((h) => (
+            {BRAND.hours.map((h, index) => (
               <div key={h.day}>
-                <dt className="text-sm">{h.day}</dt>
-                <dd className="mt-1 font-serif text-3xl text-text-primary">{h.time}</dd>
+                <dt className="text-sm">{t(index === 0 ? 'hours.weekdays' : 'hours.sunday')}</dt>
+                <dd className="mt-1 font-serif text-3xl text-text-primary">{index === 0 ? h.time : t('hours.closed')}</dd>
               </div>
             ))}
           </dl>

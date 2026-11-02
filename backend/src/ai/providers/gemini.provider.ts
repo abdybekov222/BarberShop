@@ -5,7 +5,6 @@ import {
   type AiGenerationResult,
   type AiProvider,
 } from './ai-provider.interface';
-import { MockAiProvider } from './mock.provider';
 
 /** Пока у ключа нет квоты на картинки (бесплатный тариф = 0), сайт работает в демо-режиме. */
 export const geminiState = { quotaBlockedUntil: 0 };
@@ -27,16 +26,16 @@ export class GeminiAiProvider implements AiProvider {
   readonly name = 'gemini';
   private readonly logger = new Logger(GeminiAiProvider.name);
   private readonly key = process.env.GEMINI_API_KEY ?? '';
-  private readonly models = (process.env.GEMINI_MODEL ?? 'gemini-2.5-flash-image,gemini-3.1-flash-image')
+  private readonly models = (process.env.GEMINI_MODEL ?? 'gemini-3.1-flash-image')
     .split(',')
     .map((m) => m.trim())
     .filter(Boolean);
-  private readonly cost = Number(process.env.GEMINI_COST_USD ?? 0);
-  private readonly fallback = new MockAiProvider();
+  // Gemini 3.1 Flash Image default 1K output is about $0.067; round up for input tokens.
+  private readonly cost = Number(process.env.GEMINI_COST_USD ?? 0.07);
 
   async generate({ photo, style }: AiGenerationInput): Promise<AiGenerationResult> {
     if (!this.key) throw new Error('GEMINI_NOT_CONFIGURED');
-    if (geminiState.quotaBlockedUntil > Date.now()) return this.demo({ photo, style } as AiGenerationInput);
+    if (geminiState.quotaBlockedUntil > Date.now()) throw new Error('GEMINI_QUOTA_EXCEEDED');
 
     const look = style.prompt?.trim() || style.name;
     const prompt = [
@@ -108,15 +107,11 @@ export class GeminiAiProvider implements AiProvider {
     }
     if (quotaHit && !otherError) {
       // 429/403 на всех моделях — квоты на изображения нет (нужна оплата в AI Studio)
-      this.logger.warn('Gemini: нет квоты на генерацию изображений — демо-режим на 30 минут');
+      this.logger.warn('Gemini image quota unavailable; rejecting generation for 30 minutes');
       geminiState.quotaBlockedUntil = Date.now() + QUOTA_RETRY_MS;
-      return this.demo({ photo, style } as AiGenerationInput);
+      throw new Error('GEMINI_QUOTA_EXCEEDED');
     }
     throw new Error(lastError);
   }
 
-  private async demo(input: AiGenerationInput): Promise<AiGenerationResult> {
-    const r = await this.fallback.generate(input);
-    return { ...r, costUsd: 0, providerJobId: `demo-${Date.now()}` };
-  }
 }

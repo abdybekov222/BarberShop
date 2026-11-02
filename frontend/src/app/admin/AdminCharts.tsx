@@ -15,6 +15,7 @@ import {
 } from 'recharts';
 import { formatKgs } from '@barbershop/shared';
 import { apiGet } from '../../lib/api';
+import { useI18n } from '../../i18n/I18nProvider';
 
 interface Charts {
   daily: { date: string; bookings: number; services: number; shop: number }[];
@@ -34,6 +35,7 @@ const tooltipStyle = {
 
 /** Статистика салона и магазина (recharts). */
 export function AdminCharts({ token }: { token: () => Promise<string | null> }) {
+  const { t } = useI18n();
   const [days, setDays] = useState(14);
   const [data, setData] = useState<Charts | null>(null);
 
@@ -65,17 +67,17 @@ export function AdminCharts({ token }: { token: () => Promise<string | null> }) 
             aria-pressed={days === d}
             className={`h-9 rounded-sm px-4 text-xs ${days === d ? 'bg-gold-500 font-semibold text-black' : 'border border-line'}`}
           >
-            {d} дней
+            {t('admin.days').replace('{days}', String(d))}
           </button>
         ))}
       </div>
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         {[
-          { l: 'Записей', v: String(data.totals.bookings) },
-          { l: 'Выручка услуг', v: formatKgs(data.totals.services) },
-          { l: 'Заказов', v: String(data.totals.orders) },
-          { l: 'Продажи магазина', v: formatKgs(data.totals.shop) },
+          { l: t('admin.bookings'), v: String(data.totals.bookings) },
+          { l: t('admin.serviceRevenue'), v: formatKgs(data.totals.services) },
+          { l: t('admin.orders'), v: String(data.totals.orders) },
+          { l: t('admin.shopSales'), v: formatKgs(data.totals.shop) },
         ].map((s) => (
           <div key={s.l} className="rounded-sm border border-line bg-bg-elevated p-4">
             <p className="text-xs uppercase tracking-wide">{s.l}</p>
@@ -86,7 +88,7 @@ export function AdminCharts({ token }: { token: () => Promise<string | null> }) 
 
       <div className="grid gap-4 lg:grid-cols-2">
         <section className="rounded-sm border border-line bg-bg-elevated p-4">
-          <h3 className="mb-4 font-serif text-lg uppercase">Выручка по дням, сом</h3>
+          <h3 className="mb-4 font-serif text-lg uppercase">{t('admin.revenueByDay')}</h3>
           <div className="h-64">
             <ResponsiveContainer>
               <LineChart data={data.daily}>
@@ -95,15 +97,15 @@ export function AdminCharts({ token }: { token: () => Promise<string | null> }) 
                 <YAxis stroke={MUTED} fontSize={11} tickLine={false} width={50} />
                 <Tooltip contentStyle={tooltipStyle} formatter={(v: number) => formatKgs(v)} />
                 <Legend />
-                <Line type="monotone" dataKey="services" name="Услуги" stroke={GOLD} strokeWidth={2} dot={false} />
-                <Line type="monotone" dataKey="shop" name="Магазин" stroke={MUTED} strokeWidth={2} dot={false} />
+                <Line type="monotone" dataKey="services" name={t('nav.services')} stroke={GOLD} strokeWidth={2} dot={false} />
+                <Line type="monotone" dataKey="shop" name={t('nav.shop')} stroke={MUTED} strokeWidth={2} dot={false} />
               </LineChart>
             </ResponsiveContainer>
           </div>
         </section>
 
         <section className="rounded-sm border border-line bg-bg-elevated p-4">
-          <h3 className="mb-4 font-serif text-lg uppercase">Записи по дням</h3>
+          <h3 className="mb-4 font-serif text-lg uppercase">{t('admin.bookingsByDay')}</h3>
           <div className="h-64">
             <ResponsiveContainer>
               <BarChart data={data.daily}>
@@ -111,30 +113,30 @@ export function AdminCharts({ token }: { token: () => Promise<string | null> }) 
                 <XAxis dataKey="date" stroke={MUTED} fontSize={11} tickLine={false} />
                 <YAxis stroke={MUTED} fontSize={11} tickLine={false} allowDecimals={false} width={30} />
                 <Tooltip contentStyle={tooltipStyle} cursor={{ fill: 'var(--subtle)' }} />
-                <Bar dataKey="bookings" name="Записи" fill={GOLD} radius={[2, 2, 0, 0]} />
+                <Bar dataKey="bookings" name={t('admin.bookings')} fill={GOLD} radius={[2, 2, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
         </section>
 
         <section className="rounded-sm border border-line bg-bg-elevated p-4">
-          <h3 className="mb-4 font-serif text-lg uppercase">Загрузка мастеров</h3>
+          <h3 className="mb-4 font-serif text-lg uppercase">{t('admin.masterLoad')}</h3>
           <div className="h-56">
             <ResponsiveContainer>
               <BarChart data={data.byMaster} layout="vertical">
                 <XAxis type="number" stroke={MUTED} fontSize={11} allowDecimals={false} />
                 <YAxis type="category" dataKey="name" stroke={MUTED} fontSize={11} width={130} />
                 <Tooltip contentStyle={tooltipStyle} cursor={{ fill: 'var(--subtle)' }} />
-                <Bar dataKey="count" name="Записей" fill={GOLD} radius={[0, 2, 2, 0]} />
+                <Bar dataKey="count" name={t('admin.bookings')} fill={GOLD} radius={[0, 2, 2, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
         </section>
 
         <section className="rounded-sm border border-line bg-bg-elevated p-4">
-          <h3 className="mb-4 font-serif text-lg uppercase">Топ товаров</h3>
+          <h3 className="mb-4 font-serif text-lg uppercase">{t('admin.topProducts')}</h3>
           {data.topProducts.length === 0 ? (
-            <p className="py-16 text-center text-sm">Продаж пока нет</p>
+            <p className="py-16 text-center text-sm">{t('admin.noSales')}</p>
           ) : (
             <ul className="space-y-3">
               {data.topProducts.map((p, i) => {
@@ -145,7 +147,7 @@ export function AdminCharts({ token }: { token: () => Promise<string | null> }) 
                       <span className="text-text-primary">
                         {i + 1}. {p.name}
                       </span>
-                      <span>{p.qty} шт.</span>
+                      <span>{p.qty} {t('shop.pcs')}</span>
                     </div>
                     <div className="mt-1 h-1.5 rounded-full bg-subtle">
                       <div className="h-full rounded-full bg-gold-500" style={{ width: `${(p.qty / max) * 100}%` }} />
