@@ -1,0 +1,53 @@
+services:
+  - type: web
+    name: bars-api
+    runtime: node
+    plan: starter
+    buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm --filter @barbershop/shared build && pnpm --filter @barbershop/api exec prisma generate && pnpm --filter @barbershop/api build
+    startCommand: pnpm --filter @barbershop/api exec prisma migrate deploy && pnpm --filter @barbershop/api start
+    healthCheckPath: /api/health
+    disk:
+      name: bars-storage
+      mountPath: /opt/render/project/src/storage
+      sizeGB: 1
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NODE_VERSION
+        value: 24.22.1
+      - key: DATABASE_URL
+        sync: false
+      - key: DIRECT_URL
+        sync: false
+      - key: CORS_ORIGIN
+        sync: false
+      - key: API_PUBLIC_URL
+        sync: false
+      - key: STORAGE_DIR
+        value: /opt/render/project/src/storage
+      - key: STORAGE_SIGNING_SECRET
+        generateValue: true
+      - key: JWT_SECRET
+        generateValue: true
+      - key: ADMIN_EMAILS
+        sync: false
+      - key: SALON_TZ
+        value: Asia/Bishkek
+      - key: AI_PROVIDER
+        value: mock
+
+  - type: web
+    name: bars-web
+    runtime: node
+    plan: starter
+    buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm --filter @barbershop/shared build && pnpm --filter @barbershop/web build
+    startCommand: pnpm --filter @barbershop/web start -- --hostname 0.0.0.0
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NODE_VERSION
+        value: 24.22.1
+      - key: NEXT_PUBLIC_API_URL
+        sync: false
+      - key: NEXT_PUBLIC_SITE_URL
+        sync: false

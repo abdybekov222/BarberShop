@@ -38,7 +38,7 @@ export function clientIp(req: {
 }): string | null {
   const cf = req.headers?.['cf-connecting-ip'];
   if (typeof cf === 'string') return cf;
-  const fwd = req.headers?.['x-forwarded-for'];
-  if (typeof fwd === 'string') return fwd.split(',')[0]!.trim();
+  // Express resolves X-Forwarded-For using the configured trusted proxy hop.
+  // Reading the raw header here would let a caller spoof the IP used by rate limits.
   return req.ip ?? null;
 }

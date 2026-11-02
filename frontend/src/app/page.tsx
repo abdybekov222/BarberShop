@@ -40,6 +40,36 @@ interface Review {
   master: { name: string };
 }
 
+const FAQ_COPY = {
+  ru: {
+    title: 'Перед записью',
+    items: [
+      ['Как записаться онлайн?', 'Выберите услугу, мастера и свободное время. Оставьте контакты — запрос появится в личном кабинете.'],
+      ['Когда запись подтверждена?', 'После отправки запроса администратор подтвердит время по телефону или в мессенджере. Статус можно посмотреть в разделе «Мои записи».'],
+      ['Можно ли отменить запись?', 'Отменить её через сайт можно не позднее чем за 3 часа до визита. Если времени осталось меньше, свяжитесь с нами напрямую.'],
+      ['Что показывает ИИ-примерка?', 'Она помогает заранее обсудить образ с мастером. Результат — визуализация, поэтому готовая стрижка может отличаться от изображения.'],
+    ],
+  },
+  ky: {
+    title: 'Жазылардан мурун',
+    items: [
+      ['Онлайн кантип жазылам?', 'Кызматты, чеберди жана бош убакытты тандаңыз. Байланыш маалыматыңызды калтырсаңыз, өтүнүч жеке кабинетиңизде көрүнөт.'],
+      ['Жазылуу качан ырасталат?', 'Өтүнүч жөнөтүлгөндөн кийин администратор убакытты телефон же мессенжер аркылуу ырастайт. Абалды «Жазылууларым» бөлүмүнөн көрө аласыз.'],
+      ['Жазылууну жокко чыгарса болобу?', 'Сайт аркылуу визитке 3 сааттан кечиктирбей жокко чыгарсаңыз болот. Убакыт аз калса, биз менен түз байланышыңыз.'],
+      ['ЖИ-сынамык эмнени көрсөтөт?', 'Ал чач жасалгасын чебер менен алдын ала талкуулоого жардам берет. Бул визуализация, ошондуктан даяр чач сүрөттөн айырмаланышы мүмкүн.'],
+    ],
+  },
+  en: {
+    title: 'Before you book',
+    items: [
+      ['How do I book online?', 'Choose a service, barber, and available time, then leave your contact details. Your request will appear in your account.'],
+      ['When is my booking confirmed?', 'After you send a request, an administrator confirms the time by phone or messenger. You can check its status under “My bookings”.'],
+      ['Can I cancel a booking?', 'You can cancel on the site up to 3 hours before your visit. If less time remains, contact us directly.'],
+      ['What does the AI try-on show?', 'It helps you discuss a style with your barber ahead of time. It is a visualization, so the finished cut may look different.'],
+    ],
+  },
+} as const;
+
 async function getJson<T>(path: string, fallback: T, revalidate = 300): Promise<T> {
   try {
     const res = await fetch(`${API}${path}`, { next: { revalidate } });
@@ -75,7 +105,7 @@ function SectionHead({ title, href, link }: { title: string; href?: string; link
 }
 
 export default async function HomePage() {
-  const { t } = getServerI18n();
+  const { t, lang } = getServerI18n();
   const [masters, services, config, gallery, reviews, products] = await Promise.all([
     getJson<Master[]>('/api/masters', [], 3600),
     getJson<Service[]>('/api/services', [], 3600),
@@ -85,6 +115,7 @@ export default async function HomePage() {
     getJson<ProductPage | null>('/api/products?limit=4', null, 60),
   ]);
   const top = pickTop(services);
+  const faq = FAQ_COPY[lang];
   const rating = masters.length ? (masters.reduce((a, m) => a + Number(m.rating ?? 0), 0) / masters.length).toFixed(1) : null;
 
   const why = [
@@ -315,6 +346,23 @@ export default async function HomePage() {
           </div>
         </section>
       )}
+
+      <section className="border-y border-line bg-bg-elevated">
+        <div className="mx-auto max-w-screen px-4 py-20 sm:px-6 lg:px-10 lg:py-24">
+          <SectionHead title={faq.title} href="/contacts" link={t('nav.contacts')} />
+          <div className="mt-8 grid gap-x-12 gap-y-8 md:grid-cols-2">
+            {faq.items.map(([question, answer]) => (
+              <article key={question} className="border-t border-line-strong pt-5">
+                <h3 className="font-serif text-xl text-text-primary">{question}</h3>
+                <p className="mt-2 leading-relaxed">{answer}</p>
+              </article>
+            ))}
+          </div>
+          <Link href="/booking" className="mt-9 inline-flex items-center gap-2 text-sm font-medium text-gold-500 hover:text-gold-400">
+            {t('nav.book')} <ArrowRight size={15} />
+          </Link>
+        </div>
+      </section>
 
       {/* КОНТАКТЫ */}
       <section className="border-t border-line">

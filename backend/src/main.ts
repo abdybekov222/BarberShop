@@ -7,6 +7,8 @@ import { rateLimit, securityHeaders } from './security/rate-limit.middleware';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { bufferLogs: true });
 
+  // Render and other reverse proxies provide the original client address here.
+  app.getHttpAdapter().getInstance().set('trust proxy', 1);
   app.use(securityHeaders, rateLimit);
   app.setGlobalPrefix('api');
   app.enableCors({

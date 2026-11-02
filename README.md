@@ -103,7 +103,7 @@ pnpm dev   # web → http://localhost:3000, api → http://localhost:3001
 - Прелоадер (1 раз за сессию), анимация hero, брендированные 404 и 500.
 - Админка: вкладки «Мастера» (скрыть, отпуск/больничный) и «Отзывы».
 
-Деплой (Docker для API, Vercel для web, Telegram-бот, чек-лист запуска) — [docs/deploy.md](docs/deploy.md).
+Деплой на Render и список обязательных настроек — [docs/render.md](docs/render.md). Dockerfile API также сохранён для самостоятельного размещения.
 
 ## Что реализовано
 
