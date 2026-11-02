@@ -32,7 +32,7 @@ coverage/
 
 # Приватные фото клиентов и логи
 backend/storage/
-storage/
+/storage/
 *.log
 
 # служебное
