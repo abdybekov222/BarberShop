@@ -42,6 +42,12 @@ function pluralYears(n: number, lang: Lang, fallback: string): string {
 
 const LOCALE: Record<Lang, string> = { ru: 'ru-RU', ky: 'ky-KG', en: 'en-GB' };
 
+const EMPTY_COPY: Record<Lang, { title: string; text: string; contact: string }> = {
+  ru: { title: 'Профили мастеров сейчас недоступны', text: 'Состав команды и расписание обычно публикуются здесь. Пока данные не загрузились, мы поможем подобрать мастера и время напрямую.', contact: 'Связаться с нами' },
+  ky: { title: 'Чеберлердин профилдери азыр жеткиликсиз', text: 'Команданын курамы жана графиги адатта бул жерде көрсөтүлөт. Маалымат жүктөлмөйүнчө, чеберди жана убакытты тандоого түз жардам беребиз.', contact: 'Биз менен байланышуу' },
+  en: { title: 'Barber profiles are unavailable', text: 'Our team and schedule are normally listed here. While the details are unavailable, contact us and we can help you choose a barber and time.', contact: 'Contact us' },
+};
+
 function formatNext(n: Nearest | undefined, lang: Lang, todayAt: string): string | null {
   if (!n?.next) return null;
   const d = new Date(n.next);
@@ -56,6 +62,7 @@ export function TeamGrid({ masters }: { masters: TeamMaster[] }) {
   const [loaded, setLoaded] = useState(false);
   const [onlyToday, setOnlyToday] = useState(false);
   const { t, lang } = useI18n();
+  const emptyCopy = EMPTY_COPY[lang];
 
   useEffect(() => {
     apiGet<Nearest[]>('/api/slots/nearest', null)
@@ -90,12 +97,22 @@ export function TeamGrid({ masters }: { masters: TeamMaster[] }) {
       </div>
 
       {list.length === 0 ? (
-        <p className="py-10 text-center text-text-secondary">
-          {t('pg.team.noToday')} —{' '}
-          <Link href="/booking" className="text-gold-500 underline">
-            {t('pg.team.otherDay')}
-          </Link>
-        </p>
+        masters.length === 0 ? (
+          <section className="rounded-3xl border border-line bg-bg-elevated px-6 py-12 text-center sm:px-12">
+            <h2 className="font-serif text-3xl text-text-primary">{emptyCopy.title}</h2>
+            <p className="mx-auto mt-3 max-w-xl leading-relaxed">{emptyCopy.text}</p>
+            <Link href="/contacts" className="mt-6 inline-flex h-11 items-center justify-center rounded-full bg-gold-500 px-6 text-sm font-semibold text-black hover:bg-gold-400">
+              {emptyCopy.contact}
+            </Link>
+          </section>
+        ) : (
+          <p className="py-10 text-center text-text-secondary">
+            {t('pg.team.noToday')} —{' '}
+            <Link href="/booking" className="text-gold-500 underline">
+              {t('pg.team.otherDay')}
+            </Link>
+          </p>
+        )
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {list.map((m) => (

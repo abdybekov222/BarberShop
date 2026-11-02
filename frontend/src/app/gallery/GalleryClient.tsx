@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ChevronLeft, ChevronRight, ScanFace, X } from 'lucide-react';
 import { useI18n } from '../../i18n/I18nProvider';
-import type { TKey } from '../../i18n/dictionaries';
+import type { Lang, TKey } from '../../i18n/dictionaries';
 import { Select } from '../../components/ui/Select';
 
 const TAGS: { value: string; label: TKey }[] = [
@@ -19,6 +19,12 @@ const TAGS: { value: string; label: TKey }[] = [
   { value: 'beard', label: 'pg.tag.beard' },
   { value: 'combo', label: 'pg.tag.combo' },
 ];
+
+const EMPTY_COPY: Record<Lang, { title: string; text: string; filteredTitle: string; filteredText: string; reset: string; services: string; book: string }> = {
+  ru: { title: 'Работы появятся здесь', text: 'Галерея показывает стрижки и оформление бороды, опубликованные салоном. Пока работ нет, посмотрите список услуг или выберите время для консультации с мастером.', filteredTitle: 'По этим фильтрам работ нет', filteredText: 'Сбросьте фильтры, чтобы посмотреть всю галерею.', reset: 'Сбросить фильтры', services: 'Посмотреть услуги', book: 'Выбрать время' },
+  ky: { title: 'Иштер бул жерде көрсөтүлөт', text: 'Галереяда салон жарыялаган чач тарачтар жана сакал жасалгалоо иштери көрсөтүлөт. Азырынча иштер жок болсо, кызматтарды караңыз же чебер менен кеңешүүгө убакыт тандаңыз.', filteredTitle: 'Бул чыпкалар боюнча иштер табылган жок', filteredText: 'Галереяны толугу менен көрүү үчүн чыпкаларды тазалаңыз.', reset: 'Чыпкаларды тазалоо', services: 'Кызматтарды көрүү', book: 'Убакыт тандоо' },
+  en: { title: 'Our work will appear here', text: 'The gallery features haircuts and beard grooming published by the salon. While it is empty, browse the service list or book a time to discuss a style with a barber.', filteredTitle: 'No work matches these filters', filteredText: 'Clear the filters to see the full gallery.', reset: 'Clear filters', services: 'Browse services', book: 'Choose a time' },
+};
 
 export interface GalleryItem {
   id: string;
@@ -38,7 +44,8 @@ export function GalleryClient({
   masters: { id: string; slug: string; name: string }[];
 }) {
   const router = useRouter();
-  const { t: tr } = useI18n();
+  const { t: tr, lang } = useI18n();
+  const emptyCopy = EMPTY_COPY[lang];
   const params = useSearchParams();
   const tag = params.get('type') ?? '';
   const masterSlug = params.get('master') ?? '';
@@ -48,6 +55,7 @@ export function GalleryClient({
   const filtered = initialItems.filter(
     (i) => (!tag || i.style_tag === tag) && (!masterSlug || i.master?.slug === masterSlug),
   );
+  const hasFilters = Boolean(tag || masterSlug);
   const current = open !== null ? filtered[open] : null;
 
   // Состояние фильтра в URL (?type=fade&master=…), без перезагрузки (ТЗ §2.4)
@@ -111,7 +119,21 @@ export function GalleryClient({
 
       <div className="mx-auto max-w-screen px-4 sm:px-6 lg:px-10 py-10">
         {filtered.length === 0 ? (
-          <p className="py-20 text-center">{tr('pg.gallery.empty')}</p>
+          <section className="mx-auto max-w-2xl rounded-3xl border border-line bg-bg-elevated px-6 py-12 text-center sm:px-12">
+            <p className="eyebrow">{tr('pg.gallery.title')}</p>
+            <h2 className="mt-4 font-serif text-3xl text-text-primary">{hasFilters ? emptyCopy.filteredTitle : emptyCopy.title}</h2>
+            <p className="mt-3 leading-relaxed">{hasFilters ? emptyCopy.filteredText : emptyCopy.text}</p>
+            <div className="mt-7 flex flex-wrap justify-center gap-3">
+              {hasFilters ? (
+                <Link href="/gallery" className="inline-flex h-11 items-center justify-center rounded-full border border-line-strong px-5 text-sm font-semibold text-text-primary hover:border-gold-500">{emptyCopy.reset}</Link>
+              ) : (
+                <>
+                  <Link href="/services" className="inline-flex h-11 items-center justify-center rounded-full border border-line-strong px-5 text-sm font-semibold text-text-primary hover:border-gold-500">{emptyCopy.services}</Link>
+                  <Link href="/booking" className="inline-flex h-11 items-center justify-center rounded-full bg-gold-500 px-5 text-sm font-semibold text-black hover:bg-gold-400">{emptyCopy.book}</Link>
+                </>
+              )}
+            </div>
+          </section>
         ) : (
           <div className="columns-2 gap-2 md:columns-3 lg:columns-4 sm:gap-3">
             {filtered.map((item, i) => (

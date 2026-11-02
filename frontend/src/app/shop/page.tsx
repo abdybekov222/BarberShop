@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import { Suspense } from 'react';
 import { ShopFilters } from '../../components/shop/ShopFilters';
 import { ProductCard } from '../../components/shop/ProductCard';
@@ -26,8 +27,14 @@ async function getProducts(params: Record<string, string | undefined>): Promise<
 }
 
 export default async function ShopPage({ searchParams }: { searchParams: Record<string, string | undefined> }) {
-  const { t } = getServerI18n();
+  const { t, lang } = getServerI18n();
   const data = await getProducts(searchParams);
+  const emptyCopy = {
+    ru: { title: 'Каталог товаров пока пуст', text: 'В магазине собраны средства для укладки и ухода, которыми пользуются мастера. Когда каталог будет доступен, здесь появятся описания, объёмы и цены.', action: 'Уточнить наличие' },
+    ky: { title: 'Товарлар каталогу азырынча бош', text: 'Дүкөндө чеберлер колдонгон чач жасалгалоо жана кам көрүү каражаттары бар. Каталог жеткиликтүү болгондо, бул жерде сүрөттөмөлөр, көлөмдөр жана баалар көрсөтүлөт.', action: 'Бар-жогун сураңыз' },
+    en: { title: 'The product catalogue is empty', text: 'The shop features styling and care products used by our barbers. When the catalogue is available, product details, sizes, and prices will appear here.', action: 'Ask about availability' },
+  }[lang];
+  const hasSearchFilters = Boolean(searchParams.q || searchParams.category || searchParams.minPrice || searchParams.maxPrice || searchParams.inStock);
 
   return (
     <div className="mx-auto max-w-screen px-4 pb-24 pt-10 sm:px-6 lg:px-10">
@@ -41,9 +48,27 @@ export default async function ShopPage({ searchParams }: { searchParams: Record<
       </div>
 
       {!data ? (
-        <p className="py-24 text-center">{t('common.error')}</p>
+        <section className="mt-10 rounded-3xl border border-line bg-bg-elevated px-6 py-12 text-center sm:px-12">
+          <h2 className="font-serif text-3xl text-text-primary">{t('common.error')}</h2>
+          <p className="mx-auto mt-3 max-w-xl leading-relaxed">{emptyCopy.text}</p>
+          <Link href="/contacts" className="mt-6 inline-flex h-11 items-center justify-center rounded-full bg-gold-500 px-6 text-sm font-semibold text-black hover:bg-gold-400">{emptyCopy.action}</Link>
+        </section>
       ) : data.items.length === 0 ? (
-        <p className="py-24 text-center">{t('shop.empty')}</p>
+        <section className="mt-10 rounded-3xl border border-line bg-bg-elevated px-6 py-12 text-center sm:px-12">
+          {hasSearchFilters ? (
+            <>
+              <h2 className="font-serif text-3xl text-text-primary">{t('shop.empty')}</h2>
+              <p className="mx-auto mt-3 max-w-xl leading-relaxed">{emptyCopy.text}</p>
+              <Link href="/shop" className="mt-6 inline-flex h-11 items-center justify-center rounded-full border border-line-strong px-6 text-sm font-semibold text-text-primary hover:border-gold-500">{t('shop.reset')}</Link>
+            </>
+          ) : (
+            <>
+              <h2 className="font-serif text-3xl text-text-primary">{emptyCopy.title}</h2>
+              <p className="mx-auto mt-3 max-w-xl leading-relaxed">{emptyCopy.text}</p>
+              <Link href="/contacts" className="mt-6 inline-flex h-11 items-center justify-center rounded-full bg-gold-500 px-6 text-sm font-semibold text-black hover:bg-gold-400">{emptyCopy.action}</Link>
+            </>
+          )}
+        </section>
       ) : (
         <>
           <p className="mt-8 text-sm text-text-secondary">
