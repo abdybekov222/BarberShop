@@ -1,0 +1,40 @@
+# dependencies
+node_modules/
+.pnpm-store/
+
+# build output
+dist/
+build/
+out/
+.next/
+
+# env files (keep only .env.example tracked)
+.env
+.env.local
+.env.*.local
+.env.development
+.env.production
+!.env.example
+
+# logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# misc
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+coverage/
+.turbo/
+
+# Приватные фото клиентов и логи
+backend/storage/
+storage/
+*.log
+
+# служебное
+*.tsbuildinfo
+node-check.txt

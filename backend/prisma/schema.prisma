@@ -1,0 +1,651 @@
+// Prisma schema — барбершоп (Кыргызстан).
+// Источник: docs/barbershop_db_schema.md и docs/tz_barbershop.md (раздел 3).
+//
+// Адаптация под Firebase Auth (вместо SMS-OTP/JWT из ТЗ):
+//   • users.firebase_uid — связь с аккаунтом Firebase (уникальна);
+//   • таблицы otp_codes и refresh_tokens убраны — Firebase управляет OTP и токенами.
+// Остальная бизнес-схема (каталог, расписание, записи, ИИ) — без изменений.
+//
+// Ограничение исключения (no_overlap) и CHECK-ограничения добавляются
+// отдельной SQL-миграцией (Prisma не выражает их декларативно).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ─────────────────────────── Пользователи и доступ ───────────────────────────
+
+enum UserRole {
+  client
+  master
+  admin
+  owner
+}
+
+enum ConsentType {
+  personal_data
+  biometric_ai
+}
+
+enum BlockedIdentityType {
+  google
+  phone
+}
+
+enum BlockedReason {
+  account_deleted
+  abuse
+  manual
+}
+
+model User {
+  id              String    @id @default(uuid()) @db.Uuid
+  firebase_uid    String?   @unique @map("firebase_uid")
+  password_hash   String?   @map("password_hash") @db.Text
+  phone           String?   @unique @map("phone") @db.VarChar(16) // E.164, nullable для Google-пользователей
+  phone_verified_at DateTime? @map("phone_verified_at") @db.Timestamptz
+  email           String?   @unique @db.VarChar(255)
+  google_id       String?   @unique @map("google_id") @db.VarChar(64)
+  full_name       String    @map("full_name") @db.VarChar(120)
+  avatar_url      String?   @map("avatar_url") @db.Text
+  role            UserRole  @default(client)
+  locale          String    @default("ru") @db.VarChar(5)
+  consent_pd_at   DateTime? @map("consent_pd_at") @db.Timestamptz
+  consent_ai_at   DateTime? @map("consent_ai_at") @db.Timestamptz
+  is_blocked      Boolean   @default(false) @map("is_blocked")
+  telegram_chat_id BigInt?  @map("telegram_chat_id")
+  signup_ip       String?   @map("signup_ip") // inet хранится как text
+  deleted_at      DateTime? @map("deleted_at") @db.Timestamptz
+  created_at      DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updated_at      DateTime  @default(now()) @map("updated_at") @db.Timestamptz
+
+  ai_quota        AiQuota?
+  consents        Consent[]
+  masters         Master[]
+  bookings        Booking[]          @relation("BookingClient")
+  bookings_confirmed Booking[]       @relation("BookingConfirmedBy")
+  ai_photos       AiPhoto[]
+  ai_generations  AiGeneration[]
+  reviews         Review[]
+  quota_ledger    AiQuotaLedger[]
+  product_reviews ProductReview[]
+  orders          Order[]
+
+  @@map("users")
+}
+
+model Consent {
+  id          String      @id @default(uuid()) @db.Uuid
+  user_id     String      @map("user_id") @db.Uuid
+  user        User        @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  type        ConsentType
+  text_version String     @map("text_version")
+  text_hash   String      @map("text_hash")
+  ip          String?     @db.VarChar(45)
+  user_agent  String?     @map("user_agent") @db.Text
+  created_at  DateTime    @default(now()) @map("created_at") @db.Timestamptz
+  revoked_at  DateTime?   @map("revoked_at") @db.Timestamptz
+
+  @@index([user_id])
+  @@map("consents")
+}
+
+model BlockedIdentity {
+  id            String              @id @default(uuid()) @db.Uuid
+  identity_hash String              @unique @map("identity_hash")
+  type          BlockedIdentityType
+  reason        BlockedReason
+  created_at    DateTime            @default(now()) @map("created_at") @db.Timestamptz
+
+  @@map("blocked_identities")
+}
+
+// ─────────────────────────── Каталог и расписание ────────────────────────────
+
+enum MasterRank {
+  chief
+  top
+  senior
+  barber
+}
+
+model Master {
+  id               String      @id @default(uuid()) @db.Uuid
+  user_id          String?     @map("user_id") @db.Uuid
+  user             User?       @relation(fields: [user_id], references: [id])
+  slug             String      @unique @db.VarChar(80)
+  name             String      @db.VarChar(120)
+  rank             MasterRank  @default(barber)
+  bio              String?     @db.Text
+  experience_years Int?        @map("experience_years")
+  photo_url         String?    @map("photo_url") @db.Text
+  specialties       String[]    @default([])
+  rating           Decimal?    @db.Decimal(2, 1)
+  is_active        Boolean     @default(true) @map("is_active")
+  sort_order       Int         @default(0) @map("sort_order")
+  created_at       DateTime    @default(now()) @map("created_at") @db.Timestamptz
+  updated_at       DateTime    @default(now()) @map("updated_at") @db.Timestamptz
+
+  working_hours    WorkingHour[]
+  time_off         TimeOff[]
+  master_services  MasterService[]
+  bookings         Booking[]
+  gallery_items    GalleryItem[]
+  reviews          Review[]
+
+  @@index([user_id])
+  @@index([is_active, sort_order])
+  @@map("masters")
+}
+
+model ServiceCategory {
+  id          String    @id @default(uuid()) @db.Uuid
+  slug        String    @unique @db.VarChar(80)
+  name        String    @db.VarChar(120)
+  sort_order  Int       @default(0) @map("sort_order")
+  created_at  DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updated_at  DateTime  @default(now()) @map("updated_at") @db.Timestamptz
+
+  services      Service[]
+  gallery_items GalleryItem[]
+
+  @@map("service_categories")
+}
+
+model Service {
+  id           String    @id @default(uuid()) @db.Uuid
+  category_id  String    @map("category_id") @db.Uuid
+  category     ServiceCategory @relation(fields: [category_id], references: [id])
+  name         String    @db.VarChar(160)
+  description  String?   @db.Text
+  base_price   Int       @map("base_price") // сомы (KGS), целые
+  price_is_from Boolean  @default(false) @map("price_is_from")
+  duration_min Int       @map("duration_min")
+  is_combo     Boolean   @default(false) @map("is_combo")
+  is_active    Boolean   @default(true) @map("is_active")
+  sort_order   Int       @default(0) @map("sort_order")
+  created_at   DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updated_at   DateTime  @default(now()) @map("updated_at") @db.Timestamptz
+
+  master_services MasterService[]
+  booking_items    BookingItem[]
+  hair_styles      HairStyle[]
+
+  @@index([category_id])
+  @@index([is_active, sort_order])
+  @@map("services")
+}
+
+model MasterService {
+  master_id          String    @map("master_id") @db.Uuid
+  service_id         String    @map("service_id") @db.Uuid
+  master             Master    @relation(fields: [master_id], references: [id], onDelete: Cascade)
+  service            Service   @relation(fields: [service_id], references: [id], onDelete: Cascade)
+  price_override     Int?      @map("price_override")
+  duration_override  Int?      @map("duration_override")
+
+  @@id([master_id, service_id])
+  @@index([service_id])
+  @@map("master_services")
+}
+
+model WorkingHour {
+  id           String   @id @default(uuid()) @db.Uuid
+  master_id    String   @map("master_id") @db.Uuid
+  master       Master   @relation(fields: [master_id], references: [id], onDelete: Cascade)
+  weekday      Int      // 0=вс … 6=сб
+  start_time   String   @map("start_time") @db.VarChar(5) // HH:mm
+  end_time     String   @map("end_time") @db.VarChar(5)
+  break_start String?  @map("break_start") @db.VarChar(5)
+  break_end    String?  @map("break_end") @db.VarChar(5)
+
+  @@index([master_id])
+  @@map("working_hours")
+}
+
+model TimeOff {
+  id        String   @id @default(uuid()) @db.Uuid
+  master_id String   @map("master_id") @db.Uuid
+  master    Master   @relation(fields: [master_id], references: [id], onDelete: Cascade)
+  starts_at DateTime @map("starts_at") @db.Timestamptz
+  ends_at   DateTime @map("ends_at") @db.Timestamptz
+  reason    String?  @db.VarChar(120)
+
+  @@index([master_id])
+  @@index([starts_at, ends_at])
+  @@map("time_off")
+}
+
+model GalleryItem {
+  id                 String    @id @default(uuid()) @db.Uuid
+  master_id          String?   @map("master_id") @db.Uuid
+  master             Master?   @relation(fields: [master_id], references: [id])
+  service_category_id String?  @map("service_category_id") @db.Uuid
+  service_category   ServiceCategory? @relation(fields: [service_category_id], references: [id])
+  style_tag          String?   @map("style_tag") @db.VarChar(80)
+  image_url          String    @map("image_url") @db.Text
+  width              Int?
+  height             Int?
+  blurhash           String?   @db.VarChar(40)
+  caption            String?   @db.Text
+  is_published       Boolean   @default(true) @map("is_published")
+  sort_order         Int       @default(0) @map("sort_order")
+  created_at         DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updated_at         DateTime  @default(now()) @map("updated_at") @db.Timestamptz
+
+  @@index([master_id])
+  @@index([service_category_id])
+  @@index([is_published, sort_order])
+  @@map("gallery_items")
+}
+
+model SalonSetting {
+  key         String   @id @db.VarChar(64)
+  value       String   @db.Text
+  updated_at  DateTime @default(now()) @map("updated_at") @db.Timestamptz
+
+  @@map("salon_settings")
+}
+
+// ─────────────────────────── Записи ───────────────────────────────────────────
+
+enum BookingStatus {
+  pending
+  confirmed
+  completed
+  cancelled_by_client
+  cancelled_by_salon
+  no_show
+}
+
+enum BookingSource {
+  web
+  admin
+  telegram
+}
+
+model Booking {
+  id                 String        @id @default(uuid()) @db.Uuid
+  user_id            String        @map("user_id") @db.Uuid
+  user               User          @relation("BookingClient", fields: [user_id], references: [id])
+  master_id          String        @map("master_id") @db.Uuid
+  master             Master        @relation(fields: [master_id], references: [id])
+  starts_at          DateTime      @map("starts_at") @db.Timestamptz
+  ends_at            DateTime      @map("ends_at") @db.Timestamptz
+  status             BookingStatus @default(pending)
+  total_price        Int           @map("total_price") // сомы (KGS), целые
+  total_duration_min Int           @map("total_duration_min")
+  client_comment     String?       @map("client_comment") @db.Text
+  ai_generation_id   String?       @map("ai_generation_id") @db.Uuid
+  ai_generation      AiGeneration? @relation(fields: [ai_generation_id], references: [id])
+  source             BookingSource @default(web)
+  cancelled_at       DateTime?     @map("cancelled_at") @db.Timestamptz
+  cancel_reason      String?       @map("cancel_reason") @db.VarChar(200)
+  reminder_24h_sent_at DateTime?   @map("reminder_24h_sent_at") @db.Timestamptz
+  reminder_2h_sent_at  DateTime?   @map("reminder_2h_sent_at") @db.Timestamptz
+  confirmed_by       String?       @map("confirmed_by") @db.Uuid
+  confirmed_by_user  User?         @relation("BookingConfirmedBy", fields: [confirmed_by], references: [id])
+  deleted_at         DateTime?     @map("deleted_at") @db.Timestamptz
+  created_at         DateTime      @default(now()) @map("created_at") @db.Timestamptz
+  updated_at         DateTime      @default(now()) @map("updated_at") @db.Timestamptz
+
+  items              BookingItem[]
+  review             Review?
+
+  @@index([user_id])
+  @@index([master_id])
+  @@index([starts_at, ends_at])
+  @@index([status])
+  @@map("bookings")
+}
+
+model BookingItem {
+  id           String   @id @default(uuid()) @db.Uuid
+  booking_id   String   @map("booking_id") @db.Uuid
+  booking      Booking  @relation(fields: [booking_id], references: [id], onDelete: Cascade)
+  service_id   String   @map("service_id") @db.Uuid
+  service      Service  @relation(fields: [service_id], references: [id])
+  price        Int      // снимок цены в сомах
+  duration_min Int      @map("duration_min")
+
+  @@index([booking_id])
+  @@index([service_id])
+  @@map("booking_items")
+}
+
+model Review {
+  id          String   @id @default(uuid()) @db.Uuid
+  booking_id  String   @unique @map("booking_id") @db.Uuid
+  booking     Booking  @relation(fields: [booking_id], references: [id])
+  user_id     String   @map("user_id") @db.Uuid
+  user        User     @relation(fields: [user_id], references: [id])
+  master_id   String   @map("master_id") @db.Uuid
+  master      Master   @relation(fields: [master_id], references: [id])
+  rating      Int      // 1–5
+  text        String?  @db.Text
+  is_published Boolean @default(true) @map("is_published")
+  created_at  DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updated_at  DateTime @default(now()) @map("updated_at") @db.Timestamptz
+
+  @@index([master_id])
+  @@index([is_published])
+  @@map("reviews")
+}
+
+// ─────────────────────────── ИИ-зеркало ───────────────────────────────────────
+
+enum AiPhotoStatus {
+  uploaded
+  validating
+  approved
+  rejected
+}
+
+enum AiPhotoRejectReason {
+  no_face
+  multiple_faces
+  bad_angle
+  low_resolution
+  nsfw
+  too_large
+}
+
+enum HairStyleType {
+  haircut
+  beard
+  combo
+}
+
+enum AiGenerationStatus {
+  queued
+  processing
+  succeeded
+  failed
+  refunded
+}
+
+enum AiProvider {
+  fal
+  hairapi
+  hf
+}
+
+enum KillReason {
+  manual
+  budget
+  daily_cap
+  provider_errors
+}
+
+enum LedgerReason {
+  generation
+  refund
+  admin_grant
+  promo
+}
+
+enum AbuseRule {
+  ip_accounts
+  ip_generations
+  turnstile_failed
+  cap_hour
+  cap_day
+}
+
+model AiQuota {
+  user_id     String   @id @map("user_id") @db.Uuid
+  user        User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  free_limit  Int      @default(3) @map("free_limit")
+  used_count  Int      @default(0) @map("used_count")
+  bonus_count Int      @default(0) @map("bonus_count")
+  updated_at  DateTime @default(now()) @map("updated_at") @db.Timestamptz
+
+  @@map("ai_quotas")
+}
+
+model AiPhoto {
+  id            String             @id @default(uuid()) @db.Uuid
+  user_id       String             @map("user_id") @db.Uuid
+  user          User               @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  storage_key   String             @map("storage_key") @db.Text
+  status        AiPhotoStatus      @default(uploaded)
+  reject_reason AiPhotoRejectReason?
+  face_meta     Json?              @map("face_meta")
+  sha256        String             @db.VarChar(64)
+  expires_at    DateTime           @map("expires_at") @db.Timestamptz
+  deleted_at    DateTime?          @map("deleted_at") @db.Timestamptz
+  created_at    DateTime           @default(now()) @map("created_at") @db.Timestamptz
+  updated_at    DateTime           @default(now()) @map("updated_at") @db.Timestamptz
+
+  ai_generations AiGeneration[]
+
+  @@index([user_id])
+  @@index([sha256])
+  @@map("ai_photos")
+}
+
+model HairStyle {
+  id                String        @id @default(uuid()) @db.Uuid
+  type              HairStyleType
+  name              String        @db.VarChar(120)
+  preview_url       String?       @map("preview_url") @db.Text
+  prompt            String?       @db.Text
+  negative_prompt   String?       @map("negative_prompt") @db.Text
+  seed              Int?
+  model_params      Json?         @map("model_params")
+  linked_service_id String?       @map("linked_service_id") @db.Uuid
+  linked_service    Service?      @relation(fields: [linked_service_id], references: [id])
+  is_active         Boolean       @default(true) @map("is_active")
+  sort_order        Int           @default(0) @map("sort_order")
+  created_at        DateTime      @default(now()) @map("created_at") @db.Timestamptz
+  updated_at        DateTime      @default(now()) @map("updated_at") @db.Timestamptz
+
+  ai_generations    AiGeneration[]
+
+  @@index([type, is_active, sort_order])
+  @@map("hair_styles")
+}
+
+model AiGeneration {
+  id                String              @id @default(uuid()) @db.Uuid
+  user_id           String              @map("user_id") @db.Uuid
+  user              User                @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  photo_id          String              @map("photo_id") @db.Uuid
+  photo             AiPhoto             @relation(fields: [photo_id], references: [id])
+  style_id          String              @map("style_id") @db.Uuid
+  style             HairStyle           @relation(fields: [style_id], references: [id])
+  status            AiGenerationStatus  @default(queued)
+  provider          AiProvider?
+  provider_job_id   String?             @map("provider_job_id") @db.VarChar(120)
+  model_version     String?             @map("model_version") @db.VarChar(60)
+  result_key        String?             @map("result_key") @db.Text
+  result_expires_at DateTime?           @map("result_expires_at") @db.Timestamptz
+  quota_charged     Boolean             @default(false) @map("quota_charged")
+  quota_refunded_at DateTime?           @map("quota_refunded_at") @db.Timestamptz
+  error_code        String?             @map("error_code") @db.VarChar(80)
+  cost_usd          Decimal?            @map("cost_usd") @db.Decimal(8, 4)
+  reserved_cost_usd Decimal?            @map("reserved_cost_usd") @db.Decimal(8, 4)
+  cache_hit         Boolean             @default(false) @map("cache_hit")
+  idempotency_key   String              @unique @map("idempotency_key") @db.VarChar(120)
+  started_at        DateTime?           @map("started_at") @db.Timestamptz
+  finished_at       DateTime?           @map("finished_at") @db.Timestamptz
+  created_at        DateTime            @default(now()) @map("created_at") @db.Timestamptz
+  updated_at        DateTime            @default(now()) @map("updated_at") @db.Timestamptz
+
+  bookings          Booking[]
+  quota_ledger      AiQuotaLedger[]
+
+  @@index([user_id])
+  @@index([photo_id])
+  @@index([style_id])
+  @@index([status])
+  @@index([status, created_at])
+  @@map("ai_generations")
+}
+
+model AiQuotaLedger {
+  id            String       @id @default(uuid()) @db.Uuid
+  user_id       String       @map("user_id") @db.Uuid
+  user          User         @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  generation_id String?      @map("generation_id") @db.Uuid
+  generation    AiGeneration? @relation(fields: [generation_id], references: [id])
+  delta         Int          // −1 списание, +1 возврат, +N бонус
+  reason        LedgerReason
+  balance_after Int          @map("balance_after")
+  created_at     DateTime     @default(now()) @map("created_at") @db.Timestamptz
+
+  @@index([user_id, created_at])
+  @@index([generation_id])
+  @@map("ai_quota_ledger")
+}
+
+model AiBudget {
+  id            Int         @id @default(1)
+  budget_usd    Decimal     @default(10) @map("budget_usd") @db.Decimal(8, 2)
+  spent_usd     Decimal     @default(0) @map("spent_usd") @db.Decimal(8, 4)
+  reserved_usd  Decimal     @default(0) @map("reserved_usd") @db.Decimal(8, 4)
+  est_cost_usd  Decimal     @default(0.05) @map("est_cost_usd") @db.Decimal(8, 4)
+  hourly_cap    Int         @default(5) @map("hourly_cap")
+  daily_cap     Int         @default(15) @map("daily_cap")
+  kill_switch   Boolean     @default(false) @map("kill_switch")
+  kill_reason   KillReason?
+  updated_at    DateTime    @default(now()) @map("updated_at") @db.Timestamptz
+
+  @@map("ai_budget")
+}
+
+model AiAbuseLog {
+  id        String    @id @default(uuid()) @db.Uuid
+  user_id   String?   @map("user_id") @db.Uuid
+  ip        String?   @db.VarChar(45)
+  device_id String?   @map("device_id") @db.VarChar(120)
+  rule      AbuseRule
+  created_at DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  @@index([user_id])
+  @@index([ip, created_at])
+  @@index([rule, created_at])
+  @@map("ai_abuse_log")
+}
+
+// ─────────────────────────── Магазин ─────────────────────────────────────────
+
+enum ProductCategory {
+  styling   // укладка: помады, глины, пасты
+  beard     // борода: масла, бальзамы
+  shave     // бритьё: бритвы, пена, after shave
+  care      // уход: шампуни, кондиционеры
+  tools     // инструменты: расчёски, щётки
+  gift      // подарочные наборы
+}
+
+enum OrderStatus {
+  new
+  paid
+  processing
+  ready
+  completed
+  cancelled
+}
+
+enum PaymentMethod {
+  cash      // при получении
+  card_demo // демо-оплата картой (тестовый режим)
+}
+
+enum DeliveryMethod {
+  pickup    // самовывоз из салона
+  courier   // курьер по Бишкеку
+}
+
+model Product {
+  id            String          @id @default(uuid()) @db.Uuid
+  slug          String          @unique @db.VarChar(120)
+  name          String          @db.VarChar(160)
+  brand         String          @db.VarChar(80)
+  category      ProductCategory
+  description   String          @db.Text
+  usage         String?         @db.Text
+  volume        String?         @db.VarChar(40)
+  price         Int             // сомы (KGS)
+  old_price     Int?            @map("old_price")
+  image_url     String          @map("image_url") @db.Text
+  stock         Int             @default(0)
+  rating        Decimal?        @db.Decimal(2, 1)
+  reviews_count Int             @default(0) @map("reviews_count")
+  is_active     Boolean         @default(true) @map("is_active")
+  is_featured   Boolean         @default(false) @map("is_featured")
+  sort_order    Int             @default(0) @map("sort_order")
+  created_at    DateTime        @default(now()) @map("created_at") @db.Timestamptz
+  updated_at    DateTime        @default(now()) @map("updated_at") @db.Timestamptz
+
+  reviews       ProductReview[]
+  order_items   OrderItem[]
+
+  @@index([category, is_active])
+  @@index([is_active, sort_order])
+  @@map("products")
+}
+
+model ProductReview {
+  id         String   @id @default(uuid()) @db.Uuid
+  product_id String   @map("product_id") @db.Uuid
+  product    Product  @relation(fields: [product_id], references: [id], onDelete: Cascade)
+  user_id    String   @map("user_id") @db.Uuid
+  user       User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  rating     Int
+  text       String?  @db.Text
+  created_at DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  @@unique([product_id, user_id])
+  @@index([product_id, created_at])
+  @@map("product_reviews")
+}
+
+model Order {
+  id             String         @id @default(uuid()) @db.Uuid
+  number         Int            @unique @default(autoincrement())
+  user_id        String         @map("user_id") @db.Uuid
+  user           User           @relation(fields: [user_id], references: [id])
+  customer_name  String         @map("customer_name") @db.VarChar(120)
+  phone          String         @db.VarChar(16)
+  email          String?        @db.VarChar(255)
+  delivery       DeliveryMethod @default(pickup)
+  address        String?        @db.VarChar(300)
+  comment        String?        @db.Text
+  status         OrderStatus    @default(new)
+  payment_method PaymentMethod  @default(cash) @map("payment_method")
+  paid_at        DateTime?      @map("paid_at") @db.Timestamptz
+  subtotal       Int
+  delivery_price Int            @default(0) @map("delivery_price")
+  total          Int
+  created_at     DateTime       @default(now()) @map("created_at") @db.Timestamptz
+  updated_at     DateTime       @default(now()) @map("updated_at") @db.Timestamptz
+
+  items          OrderItem[]
+
+  @@index([user_id, created_at])
+  @@index([status, created_at])
+  @@map("orders")
+}
+
+model OrderItem {
+  id         String  @id @default(uuid()) @db.Uuid
+  order_id   String  @map("order_id") @db.Uuid
+  order      Order   @relation(fields: [order_id], references: [id], onDelete: Cascade)
+  product_id String  @map("product_id") @db.Uuid
+  product    Product @relation(fields: [product_id], references: [id])
+  name       String  @db.VarChar(160) // снимок названия
+  price      Int     // снимок цены
+  qty        Int
+
+  @@index([order_id])
+  @@index([product_id])
+  @@map("order_items")
+}

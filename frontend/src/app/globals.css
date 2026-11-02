@@ -1,0 +1,282 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─── Дизайн-токены (ТЗ §2.1). Тёмная тема — по умолчанию, светлая — data-theme="light" ─── */
+:root,
+.force-dark {
+  --bg-primary: #0b0b0b;
+  --bg-elevated: #141414;
+  --bg-elevated-2: #1c1c1c;
+  --line: rgba(255, 255, 255, 0.09);
+  --line-strong: rgba(255, 255, 255, 0.22);
+  --subtle: rgba(255, 255, 255, 0.04);
+  --faint: rgba(255, 255, 255, 0.25);
+  --gold-500: #c9a24b;
+  --gold-400: #e0bd6a;
+  --gold-700: #8f6f2a;
+  --text-primary: #f7f5f2;
+  --text-secondary: #b3aea7;
+  --error: #e5484d;
+  --success: #3fb950;
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  color-scheme: dark;
+}
+
+:root[data-theme='light'] {
+  --bg-primary: #f4f0e9;
+  --bg-elevated: #fffdf9;
+  --bg-elevated-2: #ebe5da;
+  --line: rgba(20, 18, 15, 0.1);
+  --line-strong: rgba(20, 18, 15, 0.24);
+  --subtle: rgba(20, 18, 15, 0.04);
+  --faint: rgba(20, 18, 15, 0.25);
+  --gold-500: #b08532;
+  --gold-400: #8a6520;
+  --gold-700: #6f5119;
+  --text-primary: #16130f;
+  --text-secondary: #5a534a;
+  --error: #c62f35;
+  --success: #23863a;
+  color-scheme: light;
+}
+
+/* Блоки поверх фото всегда тёмные — текст должен читаться в обеих темах */
+:root[data-theme='light'] .force-dark {
+  --bg-primary: #0b0b0b;
+  --text-primary: #f7f5f2;
+  --text-secondary: #cfc9c1;
+  --line: rgba(255, 255, 255, 0.14);
+  --line-strong: rgba(255, 255, 255, 0.3);
+  --gold-500: #c9a24b;
+  --gold-400: #e0bd6a;
+  color-scheme: dark;
+}
+
+body,
+header,
+footer {
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+html,
+body {
+  background: var(--bg-primary);
+  color: var(--text-secondary);
+}
+
+body {
+  font-family: var(--font-sans), system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: clip;
+  min-height: 100dvh;
+  text-rendering: optimizeLegibility;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--font-display), 'Arial Narrow', sans-serif;
+  color: var(--text-primary);
+  font-weight: 500;
+  line-height: 1.05;
+}
+
+h1,
+h2 {
+  text-transform: uppercase;
+  letter-spacing: 0.01em;
+}
+
+::selection {
+  background: rgba(201, 162, 75, 0.35);
+  color: #fff;
+}
+
+/* Фокус — золотой (ТЗ §2.5, WCAG) */
+:focus-visible {
+  outline: 1px solid var(--gold-500);
+  outline-offset: 3px;
+}
+
+/* Тонкие скроллбары в тон */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #2a2a2a transparent;
+}
+
+@layer components {
+  /* Подпись над заголовком: «— УСЛУГИ» */
+  .eyebrow {
+    @apply inline-block text-sm font-medium text-gold-500;
+  }
+
+  .section-title {
+    @apply font-serif text-[40px] leading-[1.02] sm:text-6xl text-text-primary;
+  }
+
+  .hairline {
+    border-color: var(--line);
+  }
+
+  /* Прайс в стиле «меню ресторана»: золотая пунктирная линия между названием и ценой */
+  .price-leader {
+    flex: 1;
+    min-width: 24px;
+    margin: 0 12px;
+    border-bottom: 1px dotted rgba(201, 162, 75, 0.45);
+    transform: translateY(-4px);
+  }
+
+  .no-scrollbar {
+    scrollbar-width: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* Тонкая золотая линия как декор */
+.gold-line {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--gold-500), transparent);
+}
+
+/* Затемнение фото: 40–60% градиентом (ТЗ §2.4 hero) */
+.photo-shade {
+  background: linear-gradient(180deg, rgba(10, 10, 10, 0.55) 0%, rgba(10, 10, 10, 0.35) 40%, rgba(10, 10, 10, 0.92) 100%);
+}
+
+/* Медленный зум фона hero */
+.hero-zoom {
+  animation: hero-zoom 18s var(--ease) both;
+}
+@keyframes hero-zoom {
+  from {
+    transform: scale(1.08);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+
+/* Карточки: зум фото 1.04 на hover (ТЗ §2.2) */
+@media (hover: hover) {
+  .card-zoom img {
+    transition: transform 0.8s var(--ease);
+  }
+  .card-zoom:hover img {
+    transform: scale(1.04);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Золотой shimmer во время ИИ-генерации (ТЗ §2.4) */
+.mirror-shimmer {
+  background: linear-gradient(110deg, #141414 30%, rgba(201, 162, 75, 0.25) 50%, #141414 70%);
+  background-size: 200% 100%;
+  animation: mirror-shimmer 1.6s linear infinite;
+}
+@keyframes mirror-shimmer {
+  to {
+    background-position: -200% 0;
+  }
+}
+
+/* Анимированная золотая «галочка» успешной записи */
+.success-check path {
+  stroke-dasharray: 48;
+  stroke-dashoffset: 48;
+  animation: success-draw 0.6s var(--ease) 0.2s forwards;
+}
+@keyframes success-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .success-check path {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* Прелоадер: прорисовка логотипа золотой линией */
+.preloader-logo circle,
+.preloader-logo path {
+  stroke-dasharray: 260;
+  stroke-dashoffset: 260;
+  animation: preloader-draw 1.1s var(--ease) forwards;
+}
+@keyframes preloader-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* Появление hero: построчно, сдвиг 24px (ТЗ §2.2) */
+.hero-reveal > * {
+  animation: hero-in 0.9s var(--ease) both;
+}
+.hero-reveal > *:nth-child(2) {
+  animation-delay: 0.08s;
+}
+.hero-reveal > *:nth-child(3) {
+  animation-delay: 0.16s;
+}
+.hero-reveal > *:nth-child(4) {
+  animation-delay: 0.24s;
+}
+.hero-reveal > *:nth-child(5) {
+  animation-delay: 0.32s;
+}
+@keyframes hero-in {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+}
+
+/* Выпадающие панели (меню, списки) — «стекло» с тенью */
+.dropdown-panel {
+  background: var(--bg-elevated);
+  border: 1px solid var(--line-strong);
+  border-radius: 16px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08), 0 24px 48px -16px rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(14px);
+  animation: dropdown-in 0.16s var(--ease) both;
+}
+@keyframes dropdown-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.98);
+  }
+}
+
+/* Длинные кыргызские слова не должны рвать кнопки и заголовки */
+button,
+a {
+  overflow-wrap: normal;
+}
+h1,
+h2,
+h3 {
+  overflow-wrap: break-word;
+  hyphens: manual;
+  text-wrap: balance;
+}

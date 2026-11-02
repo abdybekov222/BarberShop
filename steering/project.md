@@ -4,8 +4,8 @@
 решениями в спеках приоритет у ТЗ; о противоречиях сообщай явно.
 
 ## Стек (не менять без согласования)
-- Монорепозиторий (pnpm workspaces): apps/web (Next.js 14+ App Router, TypeScript),
-  apps/api (NestJS, TypeScript), packages/shared (Zod-схемы, типы, formatKgs()).
+- Монорепозиторий (pnpm workspaces): frontend (Next.js 14+ App Router, TypeScript),
+  backend (NestJS, TypeScript), packages/shared (Zod-схемы, типы, formatKgs()).
 - UI: Tailwind CSS + shadcn/ui (Radix), анимации: Framer Motion + GSAP, форма: React Hook Form + Zod.
 - Данные: PostgreSQL 15 + Prisma, Redis + BullMQ, S3-совместимое хранилище (R2/S3).
 - Авторизация: Google OAuth 2.0 + SMS-OTP через интерфейс SmsProvider (Smspro.kg / СМС-ЦЕНТР).
