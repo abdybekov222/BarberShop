@@ -22,7 +22,10 @@ services:
       - key: CORS_ORIGIN
         sync: false
       - key: API_PUBLIC_URL
-        sync: false
+        fromService:
+          name: bars-api
+          type: web
+          envVarKey: RENDER_EXTERNAL_URL
       - key: STORAGE_DIR
         value: /opt/render/project/src/storage
       - key: STORAGE_SIGNING_SECRET
@@ -56,6 +59,12 @@ services:
       - key: NODE_VERSION
         value: 24.22.1
       - key: NEXT_PUBLIC_API_URL
-        sync: false
+        fromService:
+          name: bars-api
+          type: web
+          envVarKey: RENDER_EXTERNAL_URL
       - key: NEXT_PUBLIC_SITE_URL
-        sync: false
+        fromService:
+          name: bars-web
+          type: web
+          envVarKey: RENDER_EXTERNAL_URL

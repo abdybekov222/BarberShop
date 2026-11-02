@@ -11,8 +11,8 @@ Blueprint использует корень репозитория для обе
 
 1. Запушьте репозиторий в Git-провайдер, подключённый к Render, затем создайте Blueprint из `render.yaml`.
 2. Подготовьте PostgreSQL с поддержкой Prisma и задайте `DATABASE_URL` и `DIRECT_URL` в `bars-api`. Для внешней БД укажите pooled URL в `DATABASE_URL` и прямой URL в `DIRECT_URL`; если провайдер не использует пулер, обе переменные могут содержать один URL.
-3. В `bars-api` задайте `CORS_ORIGIN` равным origin сайта, например `https://bars-web.onrender.com`, и `API_PUBLIC_URL` равным публичному URL API, например `https://bars-api.onrender.com`. Указывайте только origin без завершающего `/`.
-4. В `bars-web` задайте `NEXT_PUBLIC_API_URL` равным `API_PUBLIC_URL`, а `NEXT_PUBLIC_SITE_URL` — публичному URL сайта. Эти переменные нужны уже на этапе сборки фронтенда.
+3. В `bars-api` задайте `CORS_ORIGIN` равным публичному origin сайта (без завершающего `/`). `API_PUBLIC_URL` автоматически берётся из URL самого API.
+4. URL-ы для `NEXT_PUBLIC_API_URL` и `NEXT_PUBLIC_SITE_URL` также автоматически берутся из Render. Эти переменные доступны на этапе сборки фронтенда; при использовании Blueprint их не нужно вводить вручную.
 5. Заполните `ADMIN_EMAILS` в `bars-api`, чтобы выдать учётной записи владельца роль для `/admin`.
 6. После первого создания служб проверьте Render Deploy logs и `https://<bars-api-url>/api/health`.
 7. После первой миграции заполните каталог начальными данными один раз командой `pnpm --filter @barbershop/api exec tsx prisma/seed.ts` из Shell службы API.
