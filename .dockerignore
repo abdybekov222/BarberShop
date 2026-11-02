@@ -3,6 +3,7 @@
 **/.next
 **/.env
 **/.env.local
-**/storage
+storage
+backend/storage
 **/*.log
 .git
