@@ -15,8 +15,8 @@ const NAV: { href: string; key: TKey }[] = [
   { href: '/contacts', key: 'nav.contacts' },
 ];
 
-export function Footer() {
-  const { t } = getServerI18n();
+export async function Footer() {
+  const { t } = await getServerI18n();
   return (
     <footer className="border-t hairline bg-bg-primary pb-24 sm:pb-0">
       <div className="mx-auto max-w-screen px-4 sm:px-6 lg:px-10 py-16">

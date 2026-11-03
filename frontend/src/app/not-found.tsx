@@ -2,8 +2,8 @@ import Link from 'next/link';
 import { LogoMark } from '../components/Logo';
 import { getServerI18n } from '../i18n/server';
 
-export default function NotFound() {
-  const { t } = getServerI18n();
+export default async function NotFound() {
+  const { t } = await getServerI18n();
   return (
     <div className="mx-auto flex min-h-[75dvh] max-w-md flex-col items-center justify-center px-4 text-center">
       <LogoMark size={64} className="text-gold-500" />

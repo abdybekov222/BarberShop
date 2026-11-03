@@ -29,12 +29,14 @@ const COPY: Record<Lang, { title: string; documents: string; operator: string; b
   },
 };
 
-export function generateMetadata(): Metadata {
-  return { title: COPY[getServerI18n().lang].title };
+export async function generateMetadata(): Promise<Metadata> {
+  const { lang } = await getServerI18n();
+  return { title: COPY[lang].title };
 }
 
-export default function TermsPage() {
-  const c = COPY[getServerI18n().lang];
+export default async function TermsPage() {
+  const { lang } = await getServerI18n();
+  const c = COPY[lang];
   return (
     <div className="mx-auto max-w-2xl px-4 py-12">
       <p className="eyebrow mb-5">{c.documents}</p>

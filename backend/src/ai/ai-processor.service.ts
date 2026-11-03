@@ -1,4 +1,5 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
+import sharp from 'sharp';
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageService } from '../storage/storage.service';
 import { SettingsService } from '../settings/settings.service';
@@ -59,7 +60,11 @@ export class AiProcessorService {
       let resultKey = result.resultUrl ?? null;
       if (result.image) {
         resultKey = `ai-results/${gen.user_id}/${gen.id}.jpg`;
-        await this.storage.put(resultKey, result.image);
+        const jpeg = await sharp(result.image, { failOn: 'error' })
+          .rotate()
+          .jpeg({ quality: 90, mozjpeg: true })
+          .toBuffer();
+        await this.storage.put(resultKey, jpeg);
       }
       if (!resultKey) throw new Error('EMPTY_RESULT');
 

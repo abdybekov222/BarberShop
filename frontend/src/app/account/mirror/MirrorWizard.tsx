@@ -148,7 +148,7 @@ export function MirrorWizard() {
         setStep('upload');
       }
     })();
-  }, [user, refreshProfile, refreshHistory]);
+  }, [user, refreshProfile, refreshHistory, tr]);
 
   // ─── Polling результата (каждые 2 с; переживает сворачивание вкладки) ───
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -191,7 +191,7 @@ export function MirrorWizard() {
         }
       }, 2000);
     },
-    [token, refreshProfile, refreshHistory],
+    [token, refreshProfile, refreshHistory, tr],
   );
 
   // Восстановление незавершённой генерации после перезагрузки

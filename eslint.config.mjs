@@ -1,4 +1,6 @@
 import tseslint from 'typescript-eslint';
+import nextPlugin from '@next/eslint-plugin-next';
+import reactHooks from 'eslint-plugin-react-hooks';
 
 export default tseslint.config(
   {
@@ -7,12 +9,22 @@ export default tseslint.config(
       '**/dist/**',
       '**/.next/**',
       '**/coverage/**',
-      '**/*.config.{js,mjs,ts}',
     ],
   },
   ...tseslint.configs.recommended,
   {
+    plugins: {
+      '@next/next': nextPlugin,
+      'react-hooks': reactHooks,
+    },
+    settings: {
+      next: { rootDir: 'frontend/' },
+    },
     rules: {
+      ...nextPlugin.configs.recommended.rules,
+      '@next/next/no-img-element': 'warn',
+      '@next/next/no-html-link-for-pages': 'off',
+      'react-hooks/exhaustive-deps': 'warn',
       '@typescript-eslint/no-unused-vars': [
         'warn',
         { argsIgnorePattern: '^_', varsIgnorePattern: '^_' },

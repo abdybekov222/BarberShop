@@ -46,8 +46,9 @@ const META = {
   },
 } as const;
 
-export function generateMetadata(): Metadata {
-  const m = META[getServerI18n().lang];
+export async function generateMetadata(): Promise<Metadata> {
+  const { lang } = await getServerI18n();
+  const m = META[lang];
   return {
     metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? 'https://bars.kg'),
     title: { default: m.title, template: `%s — ${BRAND.full}` },
@@ -66,8 +67,8 @@ export const viewport: Viewport = {
   viewportFit: 'cover',
 };
 
-export default function RootLayout({ children }: { children: ReactNode }) {
-  const { lang } = getServerI18n();
+export default async function RootLayout({ children }: { children: ReactNode }) {
+  const { lang } = await getServerI18n();
   return (
     <html lang={lang} className={`${display.variable} ${sans.variable}`} suppressHydrationWarning>
       <head>

@@ -4,29 +4,47 @@
   "version": "0.1.0",
   "description": "Премиальный сайт барбершопа (Кыргызстан) с ИИ-примеркой причёсок",
   "scripts": {
-    "dev": "pnpm -r --parallel --stream run dev",
-    "dev:web": "pnpm --filter @barbershop/web dev",
-    "dev:api": "pnpm --filter @barbershop/api dev",
-    "build": "pnpm --filter @barbershop/shared build && pnpm -r --filter @barbershop/web --filter @barbershop/api run build",
-    "lint": "pnpm -r run lint",
-    "typecheck": "pnpm -r run typecheck",
-    "test": "pnpm -r run test",
-    "db:generate": "pnpm --filter @barbershop/api exec prisma generate",
-    "db:migrate": "pnpm --filter @barbershop/api exec prisma migrate dev",
-    "db:deploy": "pnpm --filter @barbershop/api exec prisma migrate deploy",
-    "db:seed": "pnpm --filter @barbershop/api exec tsx prisma/seed.ts",
-    "db:studio": "pnpm --filter @barbershop/api exec prisma studio",
-    "postinstall": "pnpm --filter @barbershop/shared build || corepack pnpm --filter @barbershop/shared build",
-    "dev:frontend": "pnpm --filter @barbershop/web dev",
-    "dev:backend": "pnpm --filter @barbershop/api dev"
+    "dev": "corepack pnpm -r --parallel --stream run dev",
+    "dev:web": "corepack pnpm --filter @barbershop/web dev",
+    "dev:api": "corepack pnpm --filter @barbershop/api dev",
+    "build": "corepack pnpm --filter @barbershop/shared build && corepack pnpm -r --filter @barbershop/web --filter @barbershop/api run build",
+    "lint": "corepack pnpm exec eslint backend/src frontend/src packages/shared/src",
+    "typecheck": "corepack pnpm -r --stream run typecheck",
+    "test": "corepack pnpm -r run test",
+    "db:generate": "corepack pnpm --filter @barbershop/api exec prisma generate",
+    "db:migrate": "corepack pnpm --filter @barbershop/api exec prisma migrate dev",
+    "db:deploy": "corepack pnpm --filter @barbershop/api exec prisma migrate deploy",
+    "db:seed": "corepack pnpm --filter @barbershop/api exec tsx prisma/seed.ts",
+    "db:studio": "corepack pnpm --filter @barbershop/api exec prisma studio",
+    "postinstall": "corepack pnpm --filter @barbershop/shared build",
+    "dev:frontend": "corepack pnpm --filter @barbershop/web dev",
+    "dev:backend": "corepack pnpm --filter @barbershop/api dev"
   },
   "devDependencies": {
-    "eslint": "9.16.0",
-    "typescript-eslint": "8.18.0",
-    "typescript": "5.6.3"
+    "@next/eslint-plugin-next": "15.5.28",
+    "eslint": "10.14.0",
+    "eslint-plugin-react-hooks": "7.1.1",
+    "typescript": "5.6.3",
+    "typescript-eslint": "8.72.1"
   },
   "packageManager": "pnpm@9.12.3",
   "engines": {
-    "node": ">=22 <25"
+    "node": ">=22.13 <25"
+  },
+  "pnpm": {
+    "overrides": {
+      "@grpc/grpc-js": "1.13.6",
+      "@nestjs/cli>webpack": "5.112.0",
+      "body-parser": "1.20.9",
+      "esbuild": "0.28.2",
+      "multer": "2.5.0",
+      "glob": "14.0.2",
+      "minimatch": "11.0.1",
+      "path-to-regexp@0.1.10": "0.1.12",
+      "postcss": "8.5.23",
+      "qs": "6.16.1",
+      "undici": "6.29.1",
+      "uuid": "11.1.1"
+    }
   }
 }

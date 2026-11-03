@@ -105,7 +105,7 @@ function SectionHead({ title, href, link }: { title: string; href?: string; link
 }
 
 export default async function HomePage() {
-  const { t, lang } = getServerI18n();
+  const { t, lang } = await getServerI18n();
   const [masters, services, config, gallery, reviews, products] = await Promise.all([
     getJson<Master[]>('/api/masters', [], 3600),
     getJson<Service[]>('/api/services', [], 3600),

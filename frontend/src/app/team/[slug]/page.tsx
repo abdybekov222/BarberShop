@@ -41,18 +41,20 @@ async function getMaster(slug: string): Promise<MasterProfile | null> {
   }
 }
 
-export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
-  const { t } = getServerI18n();
-  const master = await getMaster(params.slug);
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const { slug } = await params;
+  const { t } = await getServerI18n();
+  const master = await getMaster(slug);
   if (!master) return { title: '404' };
   return { title: master.name, description: master.bio ?? `${t('home.masterOf')} ${master.name}` };
 }
 
-export default async function MasterPage({ params }: { params: { slug: string } }) {
-  const master = await getMaster(params.slug);
+export default async function MasterPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
+  const master = await getMaster(slug);
   if (!master) notFound();
   const firstName = master.name.split(' ')[0];
-  const { t } = getServerI18n();
+  const { t } = await getServerI18n();
   const services = master.master_services
     .filter((ms) => ms.service.is_active)
     .sort((a, b) => a.service.category.sort_order - b.service.category.sort_order);

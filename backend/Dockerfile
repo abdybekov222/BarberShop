@@ -2,7 +2,7 @@
 #   docker build -f backend/Dockerfile -t barbershop-api .
 #   docker run --env-file backend/.env -p 3001:3001 -v barbershop-storage:/app/backend/storage barbershop-api
 
-FROM node:20-bookworm-slim AS build
+FROM node:24-bookworm-slim AS build
 WORKDIR /app
 RUN corepack enable
 COPY pnpm-lock.yaml pnpm-workspace.yaml package.json tsconfig.base.json ./
@@ -18,7 +18,7 @@ RUN pnpm --filter @barbershop/shared build \
  && cp -r backend/dist backend/prisma /out/ \
  && cd /out && npx prisma generate
 
-FROM node:20-bookworm-slim
+FROM node:24-bookworm-slim
 RUN apt-get update && apt-get install -y --no-install-recommends openssl ca-certificates && rm -rf /var/lib/apt/lists/*
 WORKDIR /app/backend
 ENV NODE_ENV=production STORAGE_DIR=/app/backend/storage

@@ -13,7 +13,9 @@ async function bootstrap() {
   app.setGlobalPrefix('api');
   app.enableCors({
     origin: (process.env.CORS_ORIGIN ?? '*').split(',').map((s) => s.trim()),
-    credentials: true,
+    // The app authenticates with Bearer tokens and does not use cookies. Keeping
+    // credentials disabled also makes the development wildcard origin valid.
+    credentials: false,
   });
   app.useGlobalPipes(
     new ValidationPipe({

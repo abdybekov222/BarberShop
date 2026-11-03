@@ -6,8 +6,9 @@ import { PHOTOS } from '../../lib/brand';
 import { getServerI18n } from '../../i18n/server';
 import { ABOUT_COPY } from './copy';
 
-export function generateMetadata(): Metadata {
-  const c = ABOUT_COPY[getServerI18n().lang];
+export async function generateMetadata(): Promise<Metadata> {
+  const { lang } = await getServerI18n();
+  const c = ABOUT_COPY[lang];
   return { title: c.title, description: c.lead };
 }
 
@@ -24,7 +25,7 @@ async function getMasters(): Promise<{ id: string; slug: string; name: string; p
 
 export default async function AboutPage() {
   const masters = await getMasters();
-  const { t, lang } = getServerI18n();
+  const { t, lang } = await getServerI18n();
   const c = ABOUT_COPY[lang];
 
   return (

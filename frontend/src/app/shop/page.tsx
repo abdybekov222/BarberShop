@@ -7,8 +7,8 @@ import { Pagination } from '../../components/shop/Pagination';
 import { getServerI18n } from '../../i18n/server';
 import type { ProductPage } from '../../lib/shop';
 
-export function generateMetadata(): Metadata {
-  const { t } = getServerI18n();
+export async function generateMetadata(): Promise<Metadata> {
+  const { t } = await getServerI18n();
   return { title: t('shop.title'), description: t('shop.lead') };
 }
 
@@ -26,15 +26,20 @@ async function getProducts(params: Record<string, string | undefined>): Promise<
   }
 }
 
-export default async function ShopPage({ searchParams }: { searchParams: Record<string, string | undefined> }) {
-  const { t, lang } = getServerI18n();
-  const data = await getProducts(searchParams);
+export default async function ShopPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | undefined>>;
+}) {
+  const query = await searchParams;
+  const { t, lang } = await getServerI18n();
+  const data = await getProducts(query);
   const emptyCopy = {
     ru: { title: 'Каталог товаров пока пуст', text: 'В магазине собраны средства для укладки и ухода, которыми пользуются мастера. Когда каталог будет доступен, здесь появятся описания, объёмы и цены.', action: 'Уточнить наличие' },
     ky: { title: 'Товарлар каталогу азырынча бош', text: 'Дүкөндө чеберлер колдонгон чач жасалгалоо жана кам көрүү каражаттары бар. Каталог жеткиликтүү болгондо, бул жерде сүрөттөмөлөр, көлөмдөр жана баалар көрсөтүлөт.', action: 'Бар-жогун сураңыз' },
     en: { title: 'The product catalogue is empty', text: 'The shop features styling and care products used by our barbers. When the catalogue is available, product details, sizes, and prices will appear here.', action: 'Ask about availability' },
   }[lang];
-  const hasSearchFilters = Boolean(searchParams.q || searchParams.category || searchParams.minPrice || searchParams.maxPrice || searchParams.inStock);
+  const hasSearchFilters = Boolean(query.q || query.category || query.minPrice || query.maxPrice || query.inStock);
 
   return (
     <div className="mx-auto max-w-screen px-4 pb-24 pt-10 sm:px-6 lg:px-10">
@@ -82,7 +87,7 @@ export default async function ShopPage({ searchParams }: { searchParams: Record<
           <Pagination
             page={data.page}
             pages={data.pages}
-            params={searchParams}
+            params={query}
             labels={{ prev: t('shop.prev'), next: t('shop.next'), page: t('shop.page') }}
           />
         </>

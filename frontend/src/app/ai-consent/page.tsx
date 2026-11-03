@@ -14,13 +14,14 @@ const COPY: Record<Lang, { title: string; documents: string; version: string; op
   },
 };
 
-export function generateMetadata(): Metadata {
-  return { title: COPY[getServerI18n().lang].title };
+export async function generateMetadata(): Promise<Metadata> {
+  const { lang } = await getServerI18n();
+  return { title: COPY[lang].title };
 }
 
 /** Consent text for AI try-ons. Keep the version aligned with AI_CONSENT_VERSION on the API. */
-export default function AiConsentPage() {
-  const { lang } = getServerI18n();
+export default async function AiConsentPage() {
+  const { lang } = await getServerI18n();
   const c = COPY[lang];
   const name = '[Наименование ИП / ООО]';
   const content: Record<Lang, { operator: string; purpose: string; data: string; parties: string; retention: string; rights: string }> = {

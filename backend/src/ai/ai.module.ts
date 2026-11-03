@@ -16,6 +16,7 @@ import { AI_PROVIDER_TOKEN } from './providers/ai-provider.interface';
 import { MockAiProvider } from './providers/mock.provider';
 import { HfAiProvider } from './providers/hf.provider';
 import { GeminiAiProvider } from './providers/gemini.provider';
+import { CloudflareAiProvider } from './providers/cloudflare.provider';
 
 /** Выбирает провайдера по переменной окружения AI_PROVIDER. */
 const aiProviderFactory = {
@@ -24,6 +25,7 @@ const aiProviderFactory = {
     const p = activeAiProvider();
     if (p === 'gemini') return new GeminiAiProvider();
     if (p === 'hf') return new HfAiProvider();
+    if (p === 'cloudflare') return new CloudflareAiProvider();
     return new MockAiProvider();
   },
 };

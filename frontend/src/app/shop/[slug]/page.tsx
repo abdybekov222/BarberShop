@@ -26,17 +26,19 @@ async function getProduct(slug: string): Promise<ProductDetail | null> {
   }
 }
 
-export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
-  const { t } = getServerI18n();
-  const p = await getProduct(params.slug);
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const { slug } = await params;
+  const { t } = await getServerI18n();
+  const p = await getProduct(slug);
   if (!p) return { title: t('shop.notFound') };
   return { title: p.name, description: p.description.slice(0, 160), openGraph: { images: [p.image_url] } };
 }
 
-export default async function ProductPage({ params }: { params: { slug: string } }) {
-  const p = await getProduct(params.slug);
+export default async function ProductPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
+  const p = await getProduct(slug);
   if (!p) notFound();
-  const { t } = getServerI18n();
+  const { t } = await getServerI18n();
 
   return (
     <div className="mx-auto max-w-screen px-4 pb-24 pt-8 sm:px-6 lg:px-10">

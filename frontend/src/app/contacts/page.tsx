@@ -5,8 +5,8 @@ import { BRAND, PHOTOS } from '../../lib/brand';
 import { FeedbackForm } from './FeedbackForm';
 import { getServerI18n } from '../../i18n/server';
 
-export function generateMetadata(): Metadata {
-  const { t } = getServerI18n();
+export async function generateMetadata(): Promise<Metadata> {
+  const { t } = await getServerI18n();
   return { title: t('pg.contacts.title'), description: `${BRAND.full}: ${t('contact.address')}` };
 }
 
@@ -20,8 +20,8 @@ const CHANNELS = [
   { Icon: Mail, label: 'Email', value: BRAND.email, href: `mailto:${BRAND.email}` },
 ];
 
-export default function ContactsPage() {
-  const { t } = getServerI18n();
+export default async function ContactsPage() {
+  const { t } = await getServerI18n();
   return (
     <>
       <PageHeader eyebrow={t('pg.contacts.title')} title={t('pg.contacts.eyebrow')} photo={PHOTOS.interiorWide}>

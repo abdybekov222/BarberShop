@@ -1,4 +1,10 @@
-import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import type { DeliveryMethod, OrderStatus, PaymentMethod, Prisma, User } from '@prisma/client';
 import { validatePhone } from '@barbershop/shared';
 import { PrismaService } from '../prisma/prisma.service';
@@ -101,13 +107,16 @@ export class OrdersService {
     if (!order) throw new NotFoundException('Заказ не найден');
     if (order.user_id !== userId) throw new ForbiddenException();
     if (order.payment_method !== 'card_demo') throw new BadRequestException('Заказ оплачивается при получении');
-    if (order.status !== 'new') throw new BadRequestException('Заказ уже оплачен или закрыт');
-    const paid = await this.prisma.order.update({
-      where: { id: orderId },
+    const claimed = await this.prisma.order.updateMany({
+      where: { id: orderId, user_id: userId, status: 'new' },
       data: { status: 'paid', paid_at: new Date(), updated_at: new Date() },
-      include: { items: true },
     });
-    await this.notify(orderId);
+    const paid = await this.prisma.order.findUnique({ where: { id: orderId }, include: { items: true } });
+    if (!paid) throw new NotFoundException('Заказ не найден');
+    if (claimed.count === 0 && paid.status !== 'paid') {
+      throw new BadRequestException('Заказ уже оплачен или закрыт');
+    }
+    if (claimed.count > 0) await this.notify(orderId);
     return paid;
   }
 
@@ -166,16 +175,48 @@ export class OrdersService {
   }
 
   async setStatus(orderId: string, status: OrderStatus) {
-    const order = await this.prisma.order.findUnique({ where: { id: orderId }, include: { items: true, user: true } });
-    if (!order) throw new NotFoundException('Заказ не найден');
-    if (status === 'cancelled' && order.status !== 'cancelled') {
-      // возврат остатков на склад
-      await this.prisma.$transaction(
-        order.items.map((i) => this.prisma.product.update({ where: { id: i.product_id }, data: { stock: { increment: i.qty } } })),
-      );
-    }
-    const updated = await this.prisma.order.update({ where: { id: orderId }, data: { status, updated_at: new Date() } });
-    if (order.user.telegram_chat_id && status !== order.status) {
+    const result = await this.prisma.$transaction(async (tx) => {
+      const order = await tx.order.findUnique({
+        where: { id: orderId },
+        include: { items: true, user: { select: { telegram_chat_id: true } } },
+      });
+      if (!order) throw new NotFoundException('Заказ не найден');
+      if (order.status === status) {
+        return { updated: await tx.order.findUnique({ where: { id: orderId } }), notification: null };
+      }
+      if (order.status === 'cancelled') {
+        throw new BadRequestException('Отменённый заказ нельзя повторно открыть');
+      }
+
+      const now = new Date();
+      const changed = await tx.order.updateMany({
+        where: { id: orderId, status: order.status },
+        data: {
+          status,
+          ...(status === 'paid' ? { paid_at: now } : {}),
+          updated_at: now,
+        },
+      });
+      if (changed.count !== 1) throw new ConflictException('Заказ уже изменён другим запросом');
+
+      if (status === 'cancelled') {
+        for (const item of order.items) {
+          await tx.product.update({
+            where: { id: item.product_id },
+            data: { stock: { increment: item.qty } },
+          });
+        }
+      }
+
+      return {
+        updated: await tx.order.findUnique({ where: { id: orderId } }),
+        notification: order.user.telegram_chat_id
+          ? { chatId: String(order.user.telegram_chat_id), number: order.number }
+          : null,
+      };
+    });
+
+    if (result.notification) {
       const label: Record<OrderStatus, string> = {
         new: 'принят',
         paid: 'оплачен',
@@ -184,9 +225,12 @@ export class OrdersService {
         completed: 'выдан',
         cancelled: 'отменён',
       };
-      await this.telegram.send(String(order.user.telegram_chat_id), `Заказ №${order.number}: ${label[status]}.`);
+      await this.telegram.send(
+        result.notification.chatId,
+        `Заказ №${result.notification.number}: ${label[status]}.`,
+      );
     }
-    return updated;
+    return result.updated;
   }
 
   private async notify(orderId: string) {

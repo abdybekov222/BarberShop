@@ -374,6 +374,7 @@ enum AiProvider {
   fal
   hairapi
   hf
+  cloudflare
 }
 
 enum KillReason {

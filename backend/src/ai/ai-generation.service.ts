@@ -17,10 +17,10 @@ import { StorageService } from '../storage/storage.service';
 import { SettingsService } from '../settings/settings.service';
 import { AiBudgetService } from './ai-budget.service';
 import { AiProcessorService } from './ai-processor.service';
-import { AI_QUEUE, activeAiProvider } from './ai.constants';
+import { AI_QUEUE, activeAiModelVersion, activeAiProvider } from './ai.constants';
 import { secondsToSalonMidnight } from '../common/time';
 
-const PROVIDER_ENUM = new Set(['fal', 'hairapi', 'hf']);
+const PROVIDER_ENUM = new Set(['fal', 'hairapi', 'hf', 'cloudflare']);
 
 /**
  * Запуск генерации ИИ (ТЗ §3.5, шаг 2). Проверки от дешёвых к дорогим,
@@ -81,7 +81,7 @@ export class AiGenerationService {
     if (existing) return this.view(existing);
 
     // 4. Кэш
-    const modelVersion = process.env.AI_MODEL_VERSION ?? 'gemini-3.1-flash-image';
+    const modelVersion = activeAiModelVersion();
     const cached = await this.prisma.aiGeneration.findFirst({
       where: {
         photo: { sha256: photo.sha256 },

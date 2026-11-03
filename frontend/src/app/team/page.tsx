@@ -4,8 +4,8 @@ import { PHOTOS } from '../../lib/brand';
 import { TeamGrid, type TeamMaster } from './TeamGrid';
 import { getServerI18n } from '../../i18n/server';
 
-export function generateMetadata(): Metadata {
-  const { t } = getServerI18n();
+export async function generateMetadata(): Promise<Metadata> {
+  const { t } = await getServerI18n();
   return { title: t('pg.team.title'), description: t('pg.team.lead') };
 }
 
@@ -23,7 +23,7 @@ async function getMasters(): Promise<TeamMaster[]> {
 
 export default async function TeamPage() {
   const masters = await getMasters();
-  const { t } = getServerI18n();
+  const { t } = await getServerI18n();
   return (
     <>
       <PageHeader eyebrow={t('pg.team.eyebrow')} title={t('pg.team.title')} photo={PHOTOS.shave}>

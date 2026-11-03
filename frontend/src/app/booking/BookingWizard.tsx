@@ -212,7 +212,7 @@ export function BookingWizard() {
         dispatch({ type: 'SET_ERROR', payload: t('common.error') });
       }
     })();
-  }, [preService]);
+  }, [preService, t]);
 
   // Предзаполнение имени и телефона из профиля
   useEffect(() => {
@@ -252,7 +252,7 @@ export function BookingWizard() {
         if (showSpinner) dispatch({ type: 'SET_LOADING', payload: false });
       }
     })();
-  }, [state.step, state.masters.length, preMaster]);
+  }, [state.step, state.masters.length, preMaster, t]);
 
   // Загрузка слотов на шаге 3
   const loadSlots = useCallback(async (masterId: string, duration: number, serviceIds: string[]) => {
@@ -268,7 +268,7 @@ export function BookingWizard() {
     } finally {
       dispatch({ type: 'SET_LOADING', payload: false });
     }
-  }, []);
+  }, [t]);
 
   const totalDuration = state.services
     .filter((s) => state.selectedServiceIds.includes(s.id))

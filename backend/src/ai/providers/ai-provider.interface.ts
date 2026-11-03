@@ -30,7 +30,7 @@ export class AiNetworkError extends Error {
 }
 
 export interface AiProvider {
-  /** fal | hairapi | hf | mock */
+  /** gemini | hf | cloudflare | mock */
   readonly name: string;
   generate(input: AiGenerationInput): Promise<AiGenerationResult>;
 }

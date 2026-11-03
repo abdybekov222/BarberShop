@@ -3,7 +3,7 @@ services:
     name: bars-api
     runtime: node
     plan: starter
-    buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm --filter @barbershop/shared build && pnpm --filter @barbershop/api exec prisma generate && pnpm --filter @barbershop/api build
+    buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm --filter @barbershop/shared build && pnpm --filter @barbershop/api exec prisma generate --schema=prisma/schema.prisma && pnpm --filter @barbershop/api build
     startCommand: pnpm --filter @barbershop/api exec prisma migrate deploy && pnpm --filter @barbershop/api start
     healthCheckPath: /api/health
     disk:
@@ -14,7 +14,7 @@ services:
       - key: NODE_ENV
         value: production
       - key: NODE_VERSION
-        value: 24.22.1
+        value: 24.21.0
       - key: DATABASE_URL
         sync: false
       - key: DIRECT_URL
@@ -28,6 +28,14 @@ services:
           envVarKey: RENDER_EXTERNAL_URL
       - key: STORAGE_DIR
         value: /opt/render/project/src/storage
+      - key: STORAGE_PROVIDER
+        value: cloudinary
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
       - key: STORAGE_SIGNING_SECRET
         generateValue: true
       - key: JWT_SECRET
@@ -57,7 +65,7 @@ services:
       - key: NODE_ENV
         value: production
       - key: NODE_VERSION
-        value: 24.22.1
+        value: 24.21.0
       - key: NEXT_PUBLIC_API_URL
         fromService:
           name: bars-api

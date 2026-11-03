@@ -5,8 +5,8 @@ import { PHOTOS } from '../../lib/brand';
 import { GalleryClient, type GalleryItem } from './GalleryClient';
 import { getServerI18n } from '../../i18n/server';
 
-export function generateMetadata(): Metadata {
-  const { t } = getServerI18n();
+export async function generateMetadata(): Promise<Metadata> {
+  const { t } = await getServerI18n();
   return { title: t('pg.gallery.title'), description: t('pg.gallery.lead') };
 }
 
@@ -26,7 +26,7 @@ export default async function GalleryPage() {
     getJson<{ items: GalleryItem[]; total: number }>('/api/gallery?take=48', { items: [], total: 0 }),
     getJson<{ id: string; slug: string; name: string }[]>('/api/masters', []),
   ]);
-  const { t } = getServerI18n();
+  const { t } = await getServerI18n();
   return (
     <>
       <PageHeader eyebrow={t('pg.gallery.eyebrow')} title={t('pg.gallery.title')} photo={PHOTOS.fade}>

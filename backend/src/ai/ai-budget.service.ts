@@ -9,7 +9,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { RedisService } from '../redis/redis.service';
 import { TelegramService } from '../notifications/telegram.service';
 import { secondsToSalonMidnight } from '../common/time';
-import { activeAiProvider } from './ai.constants';
+import { activeAiEstimatedCostUsd, activeAiProvider } from './ai.constants';
 
 const HOUR_KEY = 'ai:cap:hour';
 const DAY_KEY = 'ai:cap:day';
@@ -81,12 +81,13 @@ export class AiBudgetService {
     userId: string,
     create: (reservedCost: number, balanceAfter: number) => Promise<T>,
   ): Promise<T> {
+    const providerEstimate = activeAiEstimatedCostUsd();
     const rows = await this.prisma.$queryRaw<
       { balance: number | null; est: number | null; budget_ok: boolean }[]
     >`
       WITH budget AS (
-        SELECT est_cost_usd,
-               (kill_switch = false AND spent_usd + reserved_usd + est_cost_usd <= budget_usd) AS ok
+        SELECT GREATEST(est_cost_usd, ${providerEstimate}::numeric) AS est_cost_usd,
+               (kill_switch = false AND spent_usd + reserved_usd + GREATEST(est_cost_usd, ${providerEstimate}::numeric) <= budget_usd) AS ok
         FROM ai_budget WHERE id = 1 FOR UPDATE
       ),
       quota AS (

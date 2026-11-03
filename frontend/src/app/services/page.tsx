@@ -5,8 +5,8 @@ import { PHOTOS } from '../../lib/brand';
 import { ServicesClient, type Category } from './ServicesClient';
 import { getServerI18n } from '../../i18n/server';
 
-export function generateMetadata(): Metadata {
-  const { t } = getServerI18n();
+export async function generateMetadata(): Promise<Metadata> {
+  const { t } = await getServerI18n();
   return { title: t('pg.services.title'), description: t('pg.services.lead') };
 }
 
@@ -24,7 +24,7 @@ async function getCategories(): Promise<Category[]> {
 
 export default async function ServicesPage() {
   const categories = (await getCategories()).filter((c) => c.services.length > 0);
-  const { t, lang } = getServerI18n();
+  const { t, lang } = await getServerI18n();
   const emptyCopy = {
     ru: { title: 'Прайс пока не загрузился', text: 'Актуальные услуги, длительность и стоимость обычно отображаются здесь из каталога салона. Напишите нам — подскажем, какие услуги доступны и сколько займёт визит.', action: 'Уточнить в контактах' },
     ky: { title: 'Прайс азырынча жүктөлгөн жок', text: 'Салондун каталогундагы кызматтар, узактыгы жана баасы адатта бул жерде көрсөтүлөт. Бизге жазыңыз — жеткиликтүү кызматтар жана визиттин узактыгы тууралуу айтып беребиз.', action: 'Байланышуу' },
