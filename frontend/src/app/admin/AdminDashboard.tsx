@@ -323,7 +323,7 @@ export function AdminDashboard() {
       <button
         type="button"
         onClick={goBack}
-        className="mb-4 inline-flex h-10 items-center gap-2 rounded-full bg-subtle px-4 text-sm font-medium text-text-secondary hover:text-text-primary"
+        className="mb-6 flex h-10 w-fit items-center gap-2 rounded-full bg-subtle px-4 text-sm font-medium text-text-secondary hover:text-text-primary"
       >
         <ArrowLeft size={15} /> {tabHistory.length > 0 ? t('admin.back') : t('acc.back')}
       </button>
