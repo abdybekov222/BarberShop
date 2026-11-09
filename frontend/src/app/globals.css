@@ -280,3 +280,7 @@ h3 {
   hyphens: manual;
   text-wrap: balance;
 }
+.hero-title {
+  overflow-wrap: normal;
+  gap: 10px;
+}

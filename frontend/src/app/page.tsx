@@ -142,9 +142,9 @@ export default async function HomePage() {
         <div className="mx-auto w-full max-w-screen px-4 pb-28 pt-36 sm:px-6 sm:pb-20 lg:px-10">
           <div className="hero-reveal max-w-3xl">
             <p className="text-sm font-medium text-gold-500">{t('home.hero.kicker')}</p>
-            <h1 className="mt-4 font-serif text-[clamp(40px,9vw,112px)] leading-[0.95]">
+            <h1 className="hero-title mt-4 font-serif text-[clamp(40px,9vw,112px)] leading-[0.95]">
               {t('home.hero.title1')}
-              <br />
+              {/* <br /> */}
               <span className="text-gold-500">{t('home.hero.title2')}</span>
             </h1>
             <p className="mt-6 max-w-xl text-base leading-relaxed text-text-primary/85 sm:text-lg">{t('home.hero.text')}</p>

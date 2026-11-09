@@ -12,7 +12,9 @@ export function AiMaintenanceBanner() {
   return (
     <div className="relative overflow-hidden rounded-sm border border-gold-500/30 bg-bg-elevated px-6 py-10 text-center">
       <div className="gold-line w-12 mx-auto mb-6" />
-      <p className="font-serif text-2xl text-text-primary mb-3">{t('mr.maintenanceTitle')}</p>
+      <p className="font-serif text-2xl text-text-primary mb-3">
+        {t('mr.maintenanceTitle')}
+      </p>
       <p className="text-text-secondary mb-8 max-w-md mx-auto">
         {t('mr.maintenanceText')}
       </p>
@@ -22,6 +24,7 @@ export function AiMaintenanceBanner() {
       >
         {t('nav.book')}
       </Link>
+      
     </div>
   );
 }
