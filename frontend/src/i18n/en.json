@@ -451,6 +451,7 @@
   "mr.deleting": "Deleting…",
   "mr.deleted": "Look deleted",
   "acc.back": "Account",
+  "admin.back": "Back",
   "mr.maintenanceTitle": "AI mirror is under maintenance",
   "mr.maintenanceText": "Book a barber and choose a style together during your visit.",
   "ui.status": "Status",

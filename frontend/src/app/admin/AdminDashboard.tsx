@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback, type FormEvent } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { ArrowLeft } from 'lucide-react';
 import { formatKgs } from '@barbershop/shared';
 import { useAuth } from '../../lib/auth-context';
 import { ApiError, apiGet, apiSend } from '../../lib/api';
@@ -219,7 +220,19 @@ export function AdminDashboard() {
   const [statusFilter, setStatusFilter] = useState('pending');
   const [dateFilter, setDateFilter] = useState('');
   const initialTab = useSearchParams().get('tab') as Tab | null;
-  const [tab, setTab] = useState<Tab>(initialTab && TAB_LABELS[initialTab] ? initialTab : 'stats');
+  const [tab, setTabState] = useState<Tab>(initialTab && TAB_LABELS[initialTab] ? initialTab : 'stats');
+  // История разделов для кнопки «Назад»; из первого раздела она ведёт в кабинет
+  const [tabHistory, setTabHistory] = useState<Tab[]>([]);
+  const setTab = (next: Tab) => {
+    if (next === tab) return;
+    setTabHistory((h) => [...h, tab]);
+    setTabState(next);
+  };
+  const goBack = () => {
+    if (tabHistory.length === 0) return router.push('/account');
+    setTabState(tabHistory[tabHistory.length - 1]);
+    setTabHistory((h) => h.slice(0, -1));
+  };
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
 
@@ -307,6 +320,13 @@ export function AdminDashboard() {
 
   return (
     <div className="mx-auto max-w-screen px-4 py-10">
+      <button
+        type="button"
+        onClick={goBack}
+        className="mb-4 inline-flex h-10 items-center gap-2 rounded-full bg-subtle px-4 text-sm font-medium text-text-secondary hover:text-text-primary"
+      >
+        <ArrowLeft size={15} /> {tabHistory.length > 0 ? t('admin.back') : t('acc.back')}
+      </button>
       <p className="eyebrow mb-5">{t('admin.management')}</p>
       <h1 className="text-4xl sm:text-5xl font-serif text-text-primary mb-8">{t('acc.admin')}</h1>
 

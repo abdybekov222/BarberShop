@@ -451,6 +451,7 @@
   "mr.deleting": "Удаление…",
   "mr.deleted": "Образ удалён",
   "acc.back": "Кабинет",
+  "admin.back": "Назад",
   "mr.maintenanceTitle": "ИИ-зеркало на техобслуживании",
   "mr.maintenanceText": "Запишитесь к мастеру — подберём образ во время визита.",
   "ui.status": "Статус",
